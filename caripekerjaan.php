@@ -1,3 +1,21 @@
+<?php
+session_start();
+include 'adminpanel/koneksi.php';
+$db = new database();
+
+// Get category filter from URL
+$kategori_filter = isset($_GET['kategori']) ? $_GET['kategori'] : '';
+$kategori_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+// Get jobs based on category filter
+if ($kategori_id > 0) {
+  $jobs = $db->get_jobs_by_category($kategori_id);
+  $page_title = htmlspecialchars($kategori_filter) . " - Lowongan Pekerjaan";
+} else {
+  $jobs = $db->tampil_data_lowongan();
+  $page_title = "Cari Pekerjaan";
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 
@@ -8,10 +26,10 @@
   <meta name="keywords" content="Bootstrap, Landing page, Template, Registration, Landing" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <meta name="author" content="UIdeck" />
-  <title>Cari Pekerjaan | LinkUp</title>
+  <title><?php echo $page_title; ?> | LinkUp</title>
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="assets/img/icon-linkup2.png">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png">
 
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="assets/css/bootstrap.min.css" />
@@ -436,7 +454,7 @@
               <span class="lni-menu"></span>
               <span class="lni-menu"></span>
             </button>
-            <a href="index.php" class="navbar-brand"><img src="assets/img/icon-linkup.png" alt="" /></a>
+            <a href="index.php" class="navbar-brand"><img src="assets/img/logo.png" alt="" /></a>
           </div>
           <div class="collapse navbar-collapse" id="main-navbar">
             <ul class="navbar-nav mr-auto w-100 justify-content-end">
@@ -444,7 +462,7 @@
                 <a class="nav-link" href="index.php"> Cari Lowongan </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="perusahaan.php">
+                <a class="nav-link" href="jelajahi-perusahaan.php">
                   Jelajahi Perusahaan
                 </a>
               </li>
@@ -461,7 +479,7 @@
           </div>
         </div>
       </div>
-      <div class="mobile-menu" data-logo="assets/img/icon-linkup.png"></div>
+      <div class="mobile-menu" data-logo="assets/img/logo.png"></div>
     </nav>
     <!-- Navbar End -->
   </header>
@@ -532,8 +550,72 @@
     <div class="container">
       <div class="row">
         <div class="col-lg-12">
+          <?php if ($kategori_filter): ?>
+            <div class="section-header">
+              <h2 class="section-title">
+                <?php echo htmlspecialchars($kategori_filter); ?> - Lowongan Pekerjaan
+              </h2>
+              <p>Temukan pekerjaan di kategori
+                <?php echo htmlspecialchars($kategori_filter); ?>
+              </p>
+            </div>
+          <?php endif; ?>
+
           <div id="jobListings" class="row">
-            <!-- Job cards will be dynamically loaded here -->
+            <?php if (!empty($jobs)): ?>
+              <?php foreach ($jobs as $job): ?>
+                <div class="col-lg-6 col-md-12">
+                  <div class="job-card">
+                    <div class="job-header">
+                      <img src="assets/img/product/<?php echo $job['gambar'] ?: 'img1.png'; ?>" alt="Company Logo"
+                        class="company-logo">
+                      <div class="job-info">
+                        <h4 class="job-title">
+                          <?php echo htmlspecialchars($job['judul_lowongan']); ?>
+                        </h4>
+                        <p class="company-name">
+                          <?php echo htmlspecialchars($job['nama_perusahaan']); ?>
+                        </p>
+                      </div>
+                    </div>
+                    <div class="job-meta">
+                      <div class="job-meta-item">
+                        <i class="lni-map-marker"></i>
+                        <?php echo htmlspecialchars($job['nama_kota']); ?>
+                      </div>
+                      <div class="job-meta-item">
+                        <i class="lni-briefcase"></i>
+                        <?php echo htmlspecialchars($job['waktukerja']); ?>
+                      </div>
+                      <div class="job-meta-item">
+                        <i class="lni-graduation"></i> Min. S1
+                      </div>
+                    </div>
+                    <div class="job-salary">
+                      <?php echo htmlspecialchars($job['gaji_lowongan']); ?>
+                    </div>
+                    <div class="job-footer">
+                      <span class="job-type">
+                        <?php echo htmlspecialchars($job['nama_kategori']); ?>
+                      </span>
+                      <span class="posted-time"><i class="lni-timer"></i>
+                        <?php echo date('d M Y', strtotime($job['tanggal_posting'])); ?>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <div class="col-12">
+                <div class="no-results">
+                  <i class="lni-search" style="font-size: 48px; margin-bottom: 15px;"></i>
+                  <h4>Tidak ada lowongan ditemukan</h4>
+                  <p>
+                    <?php echo $kategori_filter ? "Tidak ada lowongan untuk kategori " . htmlspecialchars($kategori_filter) : "Tidak ada lowongan tersedia saat ini"; ?>
+                  </p>
+                </div>
+              </div>
+            <?php endif; ?>
           </div>
 
           <!-- Pagination -->
@@ -556,7 +638,7 @@
           <div class="col-lg-3 col-md-3 col-xs-12">
             <div class="widget">
               <div class="footer-logo">
-                <img src="assets/img/icon-linkup.png" alt="" />
+                <img src="assets/img/logo2.png" alt="" />
               </div>
               <div class="textwidget">
                 <p>
@@ -571,7 +653,7 @@
               <h3 class="block-title">Quick Links</h3>
               <ul class="menu">
                 <li><a href="index.php">Cari Lowongan</a></li>
-                <li><a href="perusahaan.php">Perusahaan</a></li>
+                <li><a href="jelajahi-perusahaan.php">Perusahaan</a></li>
                 <li><a href="statuslamaran.php">Status Lamaran</a></li>
               </ul>
               <ul class="menu">

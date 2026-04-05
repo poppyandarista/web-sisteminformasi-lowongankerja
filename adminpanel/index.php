@@ -1,1532 +1,1687 @@
-<!--
-=========================================================
-* Soft UI Dashboard Tailwind - v1.0.5
-=========================================================
+<?php
+require_once 'session_check.php';
+include 'koneksi.php';
 
-* Product Page: https://www.creative-tim.com/product/soft-ui-dashboard-tailwind
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-* Licensed under MIT (https://www.creative-tim.com/license)
-* Coded by Creative Tim
+$db = new database();
 
-=========================================================
+// Query untuk Total Lowongan Aktif
+$query_lowongan = "SELECT COUNT(*) as total FROM lowongan WHERE status = 'Aktif'";
+$result_lowongan = $db->koneksi->query($query_lowongan);
+$total_lowongan_aktif = $result_lowongan ? $result_lowongan->fetch_assoc()['total'] : 0;
 
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
--->
-<!DOCTYPE html>
-<html>
+// Query untuk Total Pelamar Baru (user yang terdaftar)
+$query_pelamar = "SELECT COUNT(*) as total FROM user";
+$result_pelamar = $db->koneksi->query($query_pelamar);
+$total_pelamar_baru = $result_pelamar ? $result_pelamar->fetch_assoc()['total'] : 0;
+
+// Query untuk Total Perusahaan
+$query_perusahaan = "SELECT COUNT(*) as total FROM perusahaan";
+$result_perusahaan = $db->koneksi->query($query_perusahaan);
+$total_perusahaan = $result_perusahaan ? $result_perusahaan->fetch_assoc()['total'] : 0;
+
+// Query untuk Total Lamaran
+$query_lamaran = "SELECT COUNT(*) as total FROM lamaran";
+$result_lamaran = $db->koneksi->query($query_lamaran);
+$total_lamaran = $result_lamaran ? $result_lamaran->fetch_assoc()['total'] : 0;
+
+// Query untuk Lamaran vs Lowongan (Demand vs Supply) - PER MINGGU (SEMUA DATA)
+// FIX: Ambil semua data tanpa batas waktu untuk mencocokkan total
+$query_demand_supply_weekly = "
+    SELECT 
+        WEEK(tanggal_lamar, 1) as minggu_ke,
+        CONCAT('Minggu ', WEEK(tanggal_lamar, 1)) as label_minggu,
+        COUNT(*) as total_lamaran
+    FROM lamaran 
+    GROUP BY WEEK(tanggal_lamar, 1), label_minggu, minggu_ke
+    ORDER BY minggu_ke";
+
+$result_demand_supply_weekly = $db->koneksi->query($query_demand_supply_weekly);
+$weekly_lamaran_data = [];
+if ($result_demand_supply_weekly) {
+  while ($row = $result_demand_supply_weekly->fetch_assoc()) {
+    $weekly_lamaran_data[$row['minggu_ke']] = [
+      'label' => $row['label_minggu'],
+      'total_lamaran' => (int) $row['total_lamaran']
+    ];
+  }
+}
+
+// Query untuk Lowongan per minggu (SEMUA DATA)
+$query_lowongan_weekly = "
+    SELECT 
+        WEEK(tanggal_posting, 1) as minggu_ke,
+        CONCAT('Minggu ', WEEK(tanggal_posting, 1)) as label_minggu,
+        COUNT(*) as total_lowongan
+    FROM lowongan 
+    WHERE status = 'Aktif'
+    GROUP BY WEEK(tanggal_posting, 1), label_minggu, minggu_ke
+    ORDER BY minggu_ke";
+
+$result_lowongan_weekly = $db->koneksi->query($query_lowongan_weekly);
+$weekly_lowongan_data = [];
+if ($result_lowongan_weekly) {
+  while ($row = $result_lowongan_weekly->fetch_assoc()) {
+    $weekly_lowongan_data[$row['minggu_ke']] = [
+      'label' => $row['label_minggu'],
+      'total_lowongan' => (int) $row['total_lowongan']
+    ];
+  }
+}
+
+// Query untuk Pelamar aktif per minggu (SEMUA DATA)
+$query_pelamar_weekly = "
+    SELECT 
+        WEEK(tanggal_lamar, 1) as minggu_ke,
+        CONCAT('Minggu ', WEEK(tanggal_lamar, 1)) as label_minggu,
+        COUNT(DISTINCT id_user) as total_pelamar
+    FROM lamaran 
+    GROUP BY WEEK(tanggal_lamar, 1), label_minggu, minggu_ke
+    ORDER BY minggu_ke";
+
+$result_pelamar_weekly = $db->koneksi->query($query_pelamar_weekly);
+$weekly_pelamar_data = [];
+if ($result_pelamar_weekly) {
+  while ($row = $result_pelamar_weekly->fetch_assoc()) {
+    $weekly_pelamar_data[$row['minggu_ke']] = [
+      'label' => $row['label_minggu'],
+      'total_pelamar' => (int) $row['total_pelamar']
+    ];
+  }
+}
+
+// Gabungkan data untuk chart Lamaran vs Lowongan per minggu
+$lamaran_vs_lowongan_weekly = [];
+
+// Ambil semua minggu yang ada dari kedua dataset
+$all_weeks = array_unique(array_merge(
+  array_keys($weekly_lamaran_data),
+  array_keys($weekly_lowongan_data)
+));
+sort($all_weeks);
+
+foreach ($all_weeks as $week) {
+  $label = isset($weekly_lamaran_data[$week]) ? $weekly_lamaran_data[$week]['label'] :
+    (isset($weekly_lowongan_data[$week]) ? $weekly_lowongan_data[$week]['label'] : "Minggu $week");
+
+  $lamaran = isset($weekly_lamaran_data[$week]) ? $weekly_lamaran_data[$week]['total_lamaran'] : 0;
+  $lowongan = isset($weekly_lowongan_data[$week]) ? $weekly_lowongan_data[$week]['total_lowongan'] : 0;
+
+  $lamaran_vs_lowongan_weekly[] = [
+    'minggu' => $label,
+    'lamaran' => $lamaran,
+    'lowongan' => $lowongan
+  ];
+}
+
+// Gabungkan data untuk chart Pelamar vs Lowongan per minggu
+$pelamar_vs_lowongan_weekly = [];
+
+// Ambil semua minggu yang ada dari dataset PELAMAR dan LOWONGAN
+$pelamar_weeks = array_unique(array_merge(
+  array_keys($weekly_pelamar_data),
+  array_keys($weekly_lowongan_data)
+));
+sort($pelamar_weeks);
+
+foreach ($pelamar_weeks as $week) {
+  $label = isset($weekly_pelamar_data[$week]) ? $weekly_pelamar_data[$week]['label'] :
+    (isset($weekly_lowongan_data[$week]) ? $weekly_lowongan_data[$week]['label'] : "Minggu $week");
+
+  $pelamar = isset($weekly_pelamar_data[$week]) ? $weekly_pelamar_data[$week]['total_pelamar'] : 0;
+  $lowongan = isset($weekly_lowongan_data[$week]) ? $weekly_lowongan_data[$week]['total_lowongan'] : 0;
+
+  $pelamar_vs_lowongan_weekly[] = [
+    'minggu' => $label,
+    'pelamar' => $pelamar,
+    'lowongan' => $lowongan
+  ];
+}
+
+// Query untuk Lowongan per Kategori Pekerjaan - CHANGED: Menghitung jumlah lowongan per kategori
+$query_kategori = "SELECT 
+    kategori_lowongan,
+    COUNT(*) as total_lowongan
+    FROM lowongan 
+    WHERE status = 'Aktif'
+    GROUP BY kategori_lowongan
+    ORDER BY total_lowongan DESC
+    LIMIT 5";
+$result_kategori = $db->koneksi->query($query_kategori);
+$kategori_data = [];
+$kategori_labels = [];
+$kategori_values = [];
+
+// Debug: Tampilkan query dan hasilnya
+// echo "Query Kategori: " . $query_kategori . "<br>";
+
+if ($result_kategori) {
+  $row_count = 0;
+  while ($row = $result_kategori->fetch_assoc()) {
+    $kategori_data[] = $row;
+    $kategori_labels[] = $row['kategori_lowongan'];
+    $kategori_values[] = (int) $row['total_lowongan'];
+    $row_count++;
+  }
+
+  // Debug: Tampilkan jumlah data yang ditemukan
+  // echo "Jumlah kategori dengan lowongan: " . $row_count . "<br>";
+  // echo "Data kategori: <pre>" . print_r($kategori_data, true) . "</pre><br>";
+} else {
+  // Debug: Tampilkan error jika query gagal
+  // echo "Error query kategori: " . $db->koneksi->error . "<br>";
+  $kategori_labels = [];
+  $kategori_values = [];
+}
+
+// Default period: 7 hari terakhir
+$period = isset($_GET['period']) ? $_GET['period'] : '7days';
+$period_text = 'Last 7 days';
+
+// Set query berdasarkan period
+$date_condition = "";
+switch ($period) {
+  case '6month':
+    $date_condition = "DATE(tanggal_lamar) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)";
+    $period_text = 'Last 6 months';
+    $group_by = "DATE_FORMAT(tanggal_lamar, '%Y-%m'), MONTH(tanggal_lamar), DATE_FORMAT(tanggal_lamar, '%b')";
+    break;
+  case '1year':
+    $date_condition = "DATE(tanggal_lamar) >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)";
+    $period_text = 'Last 1 year';
+    $group_by = "DATE_FORMAT(tanggal_lamar, '%Y-%m'), MONTH(tanggal_lamar), DATE_FORMAT(tanggal_lamar, '%b')";
+    break;
+  case '7days':
+  default:
+    $date_condition = "DATE(tanggal_lamar) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+    $period_text = 'Last 7 days';
+    $group_by = "DATE(tanggal_lamar), DAYNAME(tanggal_lamar)";
+    break;
+}
+
+// Query untuk data statistik lamaran berdasarkan period
+$query_stats = "";
+if ($period == '7days') {
+  // Untuk 7 hari: grup per hari
+  $query_stats = "SELECT 
+                    DATE(tanggal_lamar) as tanggal,
+                    DAYNAME(tanggal_lamar) as hari,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status_lamaran = 'Diproses' THEN 1 ELSE 0 END) as diproses,
+                    SUM(CASE WHEN status_lamaran = 'Diterima' THEN 1 ELSE 0 END) as diterima,
+                    SUM(CASE WHEN status_lamaran = 'Ditolak' THEN 1 ELSE 0 END) as ditolak
+                  FROM lamaran 
+                  WHERE $date_condition
+                  GROUP BY DATE(tanggal_lamar), DAYNAME(tanggal_lamar)
+                  ORDER BY tanggal ASC";
+} else {
+  // Untuk 6 bulan dan 1 tahun: grup per bulan
+  $query_stats = "SELECT 
+                    DATE_FORMAT(tanggal_lamar, '%Y-%m') as bulan,
+                    MONTH(tanggal_lamar) as bulan_angka,
+                    DATE_FORMAT(tanggal_lamar, '%b') as nama_bulan_singkat,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status_lamaran = 'Diproses' THEN 1 ELSE 0 END) as diproses,
+                    SUM(CASE WHEN status_lamaran = 'Diterima' THEN 1 ELSE 0 END) as diterima,
+                    SUM(CASE WHEN status_lamaran = 'Ditolak' THEN 1 ELSE 0 END) as ditolak
+                  FROM lamaran 
+                  WHERE $date_condition
+                  GROUP BY $group_by
+                  ORDER BY bulan ASC";
+}
+
+$result_stats = $db->koneksi->query($query_stats);
+$lamaran_stats = [];
+$total_period_ini = 0;
+$total_diproses = 0;
+$total_diterima = 0;
+$total_ditolak = 0;
+
+// Mapping nama hari ke bahasa Indonesia
+$hariIndo = [
+  'Sunday' => 'Min',
+  'Monday' => 'Sen',
+  'Tuesday' => 'Sel',
+  'Wednesday' => 'Rab',
+  'Thursday' => 'Kam',
+  'Friday' => 'Jum',
+  'Saturday' => 'Sab'
+];
+
+// Mapping nama bulan ke bahasa Indonesia
+$bulanIndo = [
+  'Jan' => 'Jan',
+  'Feb' => 'Feb',
+  'Mar' => 'Mar',
+  'Apr' => 'Apr',
+  'May' => 'Mei',
+  'Jun' => 'Jun',
+  'Jul' => 'Jul',
+  'Aug' => 'Agt',
+  'Sep' => 'Sep',
+  'Oct' => 'Okt',
+  'Nov' => 'Nov',
+  'Dec' => 'Des'
+];
+
+if ($result_stats) {
+  while ($row = $result_stats->fetch_assoc()) {
+    if ($period == '7days') {
+      // Format untuk 7 hari
+      $hari = $hariIndo[$row['hari']] ?? substr($row['hari'], 0, 3);
+      $label = $hari;
+    } else {
+      // Format untuk bulan: "Jan", "Feb", dst
+      $nama_bulan = $bulanIndo[$row['nama_bulan_singkat']] ?? $row['nama_bulan_singkat'];
+      $label = $nama_bulan;
+    }
+
+    $lamaran_stats[$label] = [
+      'total' => (int) $row['total'],
+      'diproses' => (int) $row['diproses'],
+      'diterima' => (int) $row['diterima'],
+      'ditolak' => (int) $row['ditolak']
+    ];
+
+    $total_period_ini += (int) $row['total'];
+    $total_diproses += (int) $row['diproses'];
+    $total_diterima += (int) $row['diterima'];
+    $total_ditolak += (int) $row['ditolak'];
+  }
+}
+
+// Query untuk total period sebelumnya (untuk persentase perubahan)
+$previous_period_condition = "";
+switch ($period) {
+  case '6month':
+    $previous_period_condition = "tanggal_lamar >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) AND tanggal_lamar < DATE_SUB(CURDATE(), INTERVAL 6 MONTH)";
+    break;
+  case '1year':
+    $previous_period_condition = "tanggal_lamar >= DATE_SUB(CURDATE(), INTERVAL 2 YEAR) AND tanggal_lamar < DATE_SUB(CURDATE(), INTERVAL 1 YEAR)";
+    break;
+  case '7days':
+  default:
+    $previous_period_condition = "tanggal_lamar >= DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND tanggal_lamar < DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+    break;
+}
+
+$query_previous_period = "SELECT COUNT(*) as total FROM lamaran WHERE $previous_period_condition";
+$result_previous_period = $db->koneksi->query($query_previous_period);
+$total_period_sebelumnya = $result_previous_period ? $result_previous_period->fetch_assoc()['total'] : 0;
+
+// Hitung persentase perubahan (tidak digunakan lagi)
+$persentase_perubahan = 0;
+if ($total_period_sebelumnya > 0) {
+  $persentase_perubahan = (($total_period_ini - $total_period_sebelumnya) / $total_period_sebelumnya) * 100;
+}
+
+// Data untuk chart - selalu gunakan bar chart
+if ($period == '7days') {
+  // Untuk 7 hari: urutkan hari
+  $days_order = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+  $chart_labels = $days_order;
+
+  // Inisialisasi semua hari dengan nilai 0
+  foreach ($days_order as $day) {
+    if (!isset($lamaran_stats[$day])) {
+      $lamaran_stats[$day] = [
+        'total' => 0,
+        'diproses' => 0,
+        'diterima' => 0,
+        'ditolak' => 0
+      ];
+    }
+  }
+
+  // Urutkan sesuai days_order
+  $sorted_stats = [];
+  foreach ($days_order as $day) {
+    if (isset($lamaran_stats[$day])) {
+      $sorted_stats[$day] = $lamaran_stats[$day];
+    }
+  }
+  $lamaran_stats = $sorted_stats;
+  $chart_labels = array_keys($lamaran_stats);
+} else {
+  // Untuk 6 bulan dan 1 tahun: ambil labels dari data yang ada
+  $chart_labels = array_keys($lamaran_stats);
+}
+
+// Data untuk JavaScript
+$chart_data_json = json_encode($lamaran_stats);
+$chart_labels_json = json_encode($chart_labels);
+$kategori_labels_json = json_encode($kategori_labels);
+$kategori_values_json = json_encode($kategori_values);
+
+// Data untuk weekly charts
+$lamaran_vs_lowongan_json = json_encode($lamaran_vs_lowongan_weekly);
+$pelamar_vs_lowongan_json = json_encode($pelamar_vs_lowongan_weekly);
+
+$current_period = $period;
+?>
+
+<!doctype html>
+<html lang="en">
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="apple-touch-icon" sizes="76x76" href="./assets/img/apple-icon.png" />
-  <link rel="icon" type="image/png" href="./assets/img/favicon.png" />
-  <title>LinkUp</title>
-  <!--     Fonts and icons     -->
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet" />
-  <!-- Font Awesome Icons -->
-  <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
-  <!-- Nucleo Icons -->
-  <link href="./assets/css/nucleo-icons.css" rel="stylesheet" />
-  <link href="./assets/css/nucleo-svg.css" rel="stylesheet" />
-  <!-- Popper -->
-  <script src="https://unpkg.com/@popperjs/core@2"></script>
-  <!-- Main Styling -->
-  <link href="./assets/css/soft-ui-dashboard-tailwind.css?v=1.0.5" rel="stylesheet" />
-  <!-- Nepcha Analytics (nepcha.com) -->
-  <!-- Nepcha is a easy-to-use web analytics. No cookies and fully compliant with GDPR, CCPA and PECR. -->
-  <script defer data-site="YOUR_DOMAIN_HERE" src="https://api.nepcha.com/js/nepcha-analytics.js"></script>
+  <meta name="viewport"
+    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>
+    Dashboard | LinkUp
+  </title>
+  <link rel="icon" type="image/png" href="src/images/logo/favicon.png">
+  <link href="style.css" rel="stylesheet">
+  <!-- ApexCharts CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.39.0/dist/apexcharts.css">
+  <style>
+    /* Custom CSS untuk ukuran card yang lebih kecil */
+    .compact-card {
+      padding: 12px !important;
+      min-height: 100px !important;
+    }
+
+    .compact-card .icon-container {
+      height: 36px !important;
+      width: 36px !important;
+      margin-bottom: 10px !important;
+    }
+
+    .compact-card .icon-container svg {
+      width: 16px !important;
+      height: 16px !important;
+    }
+
+    .compact-card .stat-value {
+      font-size: 1.125rem !important;
+      /* 18px */
+      line-height: 1.5rem !important;
+      /* 24px */
+      margin-top: 2px !important;
+    }
+
+    .compact-card .stat-label {
+      font-size: 0.6875rem !important;
+      /* 11px */
+      line-height: 0.875rem !important;
+      /* 14px */
+      white-space: nowrap;
+    }
+
+    .compact-card .percentage-badge {
+      font-size: 0.6875rem !important;
+      /* 11px */
+      padding: 1px 6px !important;
+    }
+
+    /* Untuk memastikan card tetap kompak */
+    @media (min-width: 768px) {
+      .compact-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .compact-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      }
+
+      .compact-card {
+        min-height: 110px !important;
+      }
+    }
+
+    @media (min-width: 1280px) {
+      .compact-card {
+        min-height: 120px !important;
+      }
+    }
+
+    /* Memperkecil padding container utama */
+    .main-container {
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
+    }
+
+    @media (min-width: 768px) {
+      .main-container {
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+      }
+    }
+
+    /* CSS untuk chart baru */
+    .stat-badge-positive {
+      background-color: rgba(16, 185, 129, 0.1) !important;
+      border-color: rgba(16, 185, 129, 0.2) !important;
+      color: #10b981 !important;
+    }
+
+    .stat-badge-negative {
+      background-color: rgba(239, 68, 68, 0.1) !important;
+      border-color: rgba(239, 68, 68, 0.2) !important;
+      color: #ef4444 !important;
+    }
+
+    .chart-container {
+      margin-top: 1rem;
+      min-height: 350px;
+    }
+
+    /* Style untuk dropdown */
+    .dropdown-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 50;
+      margin-top: 0.25rem;
+      display: none;
+      min-width: 160px;
+    }
+
+    .dropdown-menu.show {
+      display: block;
+    }
+
+    /* Fix untuk grid statistik */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+      padding: 0.75rem 0;
+    }
+
+    .stats-grid dl {
+      margin: 0;
+      padding: 0.75rem;
+      background-color: #f9fafb;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 80px;
+      width: 100%;
+    }
+
+    .stats-grid dl dt {
+      font-size: 0.75rem !important;
+      font-weight: 500;
+      color: #6b7280;
+      margin-bottom: 0.25rem;
+      text-align: center;
+    }
+
+    .stats-grid dl dd {
+      font-size: 1.25rem !important;
+      font-weight: 700;
+      color: #111827;
+      margin: 0;
+    }
+
+    /* Dark mode untuk stats grid */
+    .dark .stats-grid dl {
+      background-color: rgba(31, 41, 55, 0.5);
+      border-color: #374151;
+    }
+
+    .dark .stats-grid dl dt {
+      color: #d1d5db;
+    }
+
+    .dark .stats-grid dl dd {
+      color: #f9fafb;
+    }
+
+    /* Rotate untuk dropdown arrow */
+    .rotate-180 {
+      transform: rotate(180deg);
+      transition: transform 0.2s ease;
+    }
+
+    /* Style untuk bar chart yang lebih baik */
+    .apexcharts-bar-series.apexcharts-plot-series .apexcharts-series path {
+      stroke-width: 1;
+    }
+
+    .apexcharts-legend {
+      padding-top: 10px;
+    }
+
+    /* Style untuk header chart dengan icon */
+    .chart-header-icon {
+      margin-right: 1rem !important;
+      width: 48px !important;
+      height: 48px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chart-header-content {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-header-content h5 {
+      font-size: 1.75rem !important;
+      line-height: 2rem !important;
+      margin-bottom: 0.25rem;
+      font-weight: 700;
+    }
+
+    .chart-header-content p {
+      font-size: 0.875rem !important;
+      color: #6b7280;
+      margin: 0;
+    }
+
+    /* Dark mode untuk chart header */
+    .dark .chart-header-content h5 {
+      color: #f9fafb;
+    }
+
+    .dark .chart-header-content p {
+      color: #d1d5db;
+    }
+
+    /* Font styling untuk chart labels */
+    .apexcharts-xaxis-label,
+    .apexcharts-yaxis-label {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    .apexcharts-legend-text {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+      font-size: 12px !important;
+      font-weight: 400 !important;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .stats-grid dl {
+        min-height: 70px;
+        padding: 0.5rem;
+      }
+
+      .chart-header-icon {
+        width: 40px !important;
+        height: 40px !important;
+        margin-right: 0.75rem !important;
+      }
+
+      .chart-header-content h5 {
+        font-size: 1.5rem !important;
+      }
+    }
+
+    @media (min-width: 768px) and (max-width: 1023px) {
+      .stats-grid dl dt {
+        font-size: 0.6875rem !important;
+      }
+
+      .stats-grid dl dd {
+        font-size: 1.125rem !important;
+      }
+    }
+
+    /* Remove percentage badges from compact cards */
+    .compact-card .percentage-badge {
+      display: none !important;
+    }
+
+    /* PERBAIKAN UNTUK STATISTICS CHART - Mencegah ketumpukan */
+    .statistics-chart-wrapper {
+      position: relative;
+      z-index: 1;
+    }
+
+    .statistics-tabs {
+      display: flex;
+      gap: 0.25rem;
+      background-color: #f3f4f6;
+      padding: 0.25rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    .statistics-tab {
+      flex: 1;
+      padding: 0.5rem 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #6b7280;
+      background: transparent;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      z-index: 3;
+    }
+
+    .statistics-tab.active {
+      background-color: white;
+      color: #111827;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .statistics-tab:hover:not(.active) {
+      color: #374151;
+    }
+
+    #chartThree {
+      position: relative;
+      z-index: 1;
+      min-width: 100% !important;
+      width: 100% !important;
+      overflow: visible !important;
+    }
+
+    .chart-three-container {
+      min-height: 350px;
+      padding-top: 1rem;
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      overflow: visible !important;
+    }
+
+    /* Override untuk custom-scrollbar agar tidak mengganggu */
+    .custom-scrollbar {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+    }
+
+    /* Pastikan chart Three memiliki width yang benar */
+    #chartThree .apexcharts-canvas {
+      width: 100% !important;
+      position: relative !important;
+    }
+
+    /* Dark mode untuk statistics tabs */
+    .dark .statistics-tabs {
+      background-color: #374151;
+    }
+
+    .dark .statistics-tab.active {
+      background-color: #1f2937;
+      color: #f9fafb;
+    }
+
+    .dark .statistics-tab:hover:not(.active) {
+      color: #d1d5db;
+    }
+
+    /* Reset untuk template asli yang mungkin mengganggu */
+    .rounded-xl.border-gray-200.bg-white {
+      position: relative;
+      overflow: visible !important;
+    }
+
+    .rounded-xl.border-gray-200.bg-white .custom-scrollbar {
+      overflow-x: auto !important;
+      overflow-y: visible !important;
+    }
+
+    /* Fix untuk layout grid */
+    .grid.grid-cols-12.gap-3 {
+      position: relative;
+    }
+  </style>
 </head>
 
-<body class="m-0 font-sans text-base antialiased font-normal leading-default bg-gray-50 text-slate-500">
-  <!-- sidenav  -->
-  <aside
-    class="max-w-62.5 ease-nav-brand z-990 fixed inset-y-0 my-4 ml-4 block w-full -translate-x-full flex-wrap items-center justify-between overflow-y-auto rounded-2xl border-0 bg-white p-0 antialiased shadow-none transition-transform duration-200 xl:left-0 xl:translate-x-0 xl:bg-transparent">
-    <div class="h-19.5">
-      <i class="absolute top-0 right-0 hidden p-4 opacity-50 cursor-pointer fas fa-times text-slate-400 xl:hidden"
-        sidenav-close></i>
-      <a class="block px-8 py-6 m-0 text-sm whitespace-nowrap text-slate-700" href="javascript:;" target="_blank">
-        <img src="./assets/img/logo-ct.png"
-          class="inline h-full max-w-full transition-all duration-200 ease-nav-brand max-h-8" alt="main_logo" />
-        <span class="ml-1 font-semibold transition-all duration-200 ease-nav-brand">Soft UI Dashboard</span>
-      </a>
-    </div>
-
-    <hr class="h-px mt-0 bg-transparent bg-gradient-to-r from-transparent via-black/40 to-transparent" />
-
-    <div class="items-center block w-auto max-h-screen overflow-auto h-sidenav grow basis-full">
-      <ul class="flex flex-col pl-0 mb-0">
-        <li class="mt-0.5 w-full">
-          <a class="py-2.7 shadow-soft-xl text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap rounded-lg bg-white px-4 font-semibold text-slate-700 transition-colors"
-            href="./pages/dashboard.html">
-            <div
-              class="bg-gradient-to-tl from-purple-700 to-pink-500 shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white bg-center stroke-0 text-center xl:p-2.5">
-              <svg width="12px" height="12px" viewBox="0 0 45 40" version="1.1" xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink">
-                <title>shop</title>
-                <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                  <g transform="translate(-1716.000000, -439.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                    <g transform="translate(1716.000000, 291.000000)">
-                      <g transform="translate(0.000000, 148.000000)">
-                        <path class="opacity-60"
-                          d="M46.7199583,10.7414583 L40.8449583,0.949791667 C40.4909749,0.360605034 39.8540131,0 39.1666667,0 L7.83333333,0 C7.1459869,0 6.50902508,0.360605034 6.15504167,0.949791667 L0.280041667,10.7414583 C0.0969176761,11.0460037 -1.23209662e-05,11.3946378 -1.23209662e-05,11.75 C-0.00758042603,16.0663731 3.48367543,19.5725301 7.80004167,19.5833333 L7.81570833,19.5833333 C9.75003686,19.5882688 11.6168794,18.8726691 13.0522917,17.5760417 C16.0171492,20.2556967 20.5292675,20.2556967 23.494125,17.5760417 C26.4604562,20.2616016 30.9794188,20.2616016 33.94575,17.5760417 C36.2421905,19.6477597 39.5441143,20.1708521 42.3684437,18.9103691 C45.1927731,17.649886 47.0084685,14.8428276 47.0000295,11.75 C47.0000295,11.3946378 46.9030823,11.0460037 46.7199583,10.7414583 Z">
-                        </path>
-                        <path class=""
-                          d="M39.198,22.4912623 C37.3776246,22.4928106 35.5817531,22.0149171 33.951625,21.0951667 L33.92225,21.1107282 C31.1430221,22.6838032 27.9255001,22.9318916 24.9844167,21.7998837 C24.4750389,21.605469 23.9777983,21.3722567 23.4960833,21.1018359 L23.4745417,21.1129513 C20.6961809,22.6871153 17.4786145,22.9344611 14.5386667,21.7998837 C14.029926,21.6054643 13.533337,21.3722507 13.0522917,21.1018359 C11.4250962,22.0190609 9.63246555,22.4947009 7.81570833,22.4912623 C7.16510551,22.4842162 6.51607673,22.4173045 5.875,22.2911849 L5.875,44.7220845 C5.875,45.9498589 6.7517757,46.9451667 7.83333333,46.9451667 L19.5833333,46.9451667 L19.5833333,33.6066734 L27.4166667,33.6066734 L27.4166667,46.9451667 L39.1666667,46.9451667 C40.2482243,46.9451667 41.125,45.9498589 41.125,44.7220845 L41.125,22.2822926 C40.4887822,22.4116582 39.8442868,22.4815492 39.198,22.4912623 Z">
-                        </path>
-                      </g>
-                    </g>
-                  </g>
-                </g>
-              </svg>
-            </div>
-            <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Dashboard</span>
-          </a>
-        </li>
-
-        <li class="mt-0.5 w-full">
-          <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors"
-            href="./pages/tables.html">
-            <div
-              class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white bg-center stroke-0 text-center xl:p-2.5">
-              <svg width="12px" height="12px" viewBox="0 0 42 42" version="1.1" xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink">
-                <title>office</title>
-                <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                  <g transform="translate(-1869.000000, -293.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                    <g transform="translate(1716.000000, 291.000000)">
-                      <g transform="translate(153.000000, 2.000000)">
-                        <path class="fill-slate-800 opacity-60"
-                          d="M12.25,17.5 L8.75,17.5 L8.75,1.75 C8.75,0.78225 9.53225,0 10.5,0 L31.5,0 C32.46775,0 33.25,0.78225 33.25,1.75 L33.25,12.25 L29.75,12.25 L29.75,3.5 L12.25,3.5 L12.25,17.5 Z">
-                        </path>
-                        <path class="fill-slate-800"
-                          d="M40.25,14 L24.5,14 C23.53225,14 22.75,14.78225 22.75,15.75 L22.75,38.5 L19.25,38.5 L19.25,22.75 C19.25,21.78225 18.46775,21 17.5,21 L1.75,21 C0.78225,21 0,21.78225 0,22.75 L0,40.25 C0,41.21775 0.78225,42 1.75,42 L40.25,42 C41.21775,42 42,41.21775 42,40.25 L42,15.75 C42,14.78225 41.21775,14 40.25,14 Z M12.25,36.75 L7,36.75 L7,33.25 L12.25,33.25 L12.25,36.75 Z M12.25,29.75 L7,29.75 L7,26.25 L12.25,26.25 L12.25,29.75 Z M35,36.75 L29.75,36.75 L29.75,33.25 L35,33.25 L35,36.75 Z M35,29.75 L29.75,29.75 L29.75,26.25 L35,26.25 L35,29.75 Z M35,22.75 L29.75,22.75 L29.75,19.25 L35,19.25 L35,22.75 Z">
-                        </path>
-                      </g>
-                    </g>
-                  </g>
-                </g>
-              </svg>
-            </div>
-            <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Tables</span>
-          </a>
-        </li>
-
-        <li class="mt-0.5 w-full">
-          <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors"
-            href="./pages/billing.html">
-            <div
-              class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white bg-center fill-current stroke-0 text-center xl:p-2.5">
-              <svg width="12px" height="12px" viewBox="0 0 43 36" version="1.1" xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink">
-                <title>credit-card</title>
-                <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                  <g transform="translate(-2169.000000, -745.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                    <g transform="translate(1716.000000, 291.000000)">
-                      <g transform="translate(453.000000, 454.000000)">
-                        <path class="fill-slate-800 opacity-60"
-                          d="M43,10.7482083 L43,3.58333333 C43,1.60354167 41.3964583,0 39.4166667,0 L3.58333333,0 C1.60354167,0 0,1.60354167 0,3.58333333 L0,10.7482083 L43,10.7482083 Z">
-                        </path>
-                        <path class="fill-slate-800"
-                          d="M0,16.125 L0,32.25 C0,34.2297917 1.60354167,35.8333333 3.58333333,35.8333333 L39.4166667,35.8333333 C41.3964583,35.8333333 43,34.2297917 43,32.25 L43,16.125 L0,16.125 Z M19.7083333,26.875 L7.16666667,26.875 L7.16666667,23.2916667 L19.7083333,23.2916667 L19.7083333,26.875 Z M35.8333333,26.875 L28.6666667,26.875 L28.6666667,23.2916667 L35.8333333,23.2916667 L35.8333333,26.875 Z">
-                        </path>
-                      </g>
-                    </g>
-                  </g>
-                </g>
-              </svg>
-            </div>
-            <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Billing</span>
-          </a>
-        </li>
-
-        <li class="mt-0.5 w-full">
-          <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors"
-            href="./pages/virtual-reality.html">
-            <div
-              class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white bg-center stroke-0 text-center xl:p-2.5">
-              <svg width="12px" height="12px" viewBox="0 0 42 42" version="1.1" xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink">
-                <title>box-3d-50</title>
-                <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                  <g transform="translate(-2319.000000, -291.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                    <g transform="translate(1716.000000, 291.000000)">
-                      <g transform="translate(603.000000, 0.000000)">
-                        <path class="fill-slate-800"
-                          d="M22.7597136,19.3090182 L38.8987031,11.2395234 C39.3926816,10.9925342 39.592906,10.3918611 39.3459167,9.89788265 C39.249157,9.70436312 39.0922432,9.5474453 38.8987261,9.45068056 L20.2741875,0.1378125 L20.2741875,0.1378125 C19.905375,-0.04725 19.469625,-0.04725 19.0995,0.1378125 L3.1011696,8.13815822 C2.60720568,8.38517662 2.40701679,8.98586148 2.6540352,9.4798254 C2.75080129,9.67332903 2.90771305,9.83023153 3.10122239,9.9269862 L21.8652864,19.3090182 C22.1468139,19.4497819 22.4781861,19.4497819 22.7597136,19.3090182 Z">
-                        </path>
-                        <path class="fill-slate-800 opacity-60"
-                          d="M23.625,22.429159 L23.625,39.8805372 C23.625,40.4328219 24.0727153,40.8805372 24.625,40.8805372 C24.7802551,40.8805372 24.9333778,40.8443874 25.0722402,40.7749511 L41.2741875,32.673375 L41.2741875,32.673375 C41.719125,32.4515625 42,31.9974375 42,31.5 L42,14.241659 C42,13.6893742 41.5522847,13.241659 41,13.241659 C40.8447549,13.241659 40.6916418,13.2778041 40.5527864,13.3472318 L24.1777864,21.5347318 C23.8390024,21.7041238 23.625,22.0503869 23.625,22.429159 Z">
-                        </path>
-                        <path class="fill-slate-800 opacity-60"
-                          d="M20.4472136,21.5347318 L1.4472136,12.0347318 C0.953235098,11.7877425 0.352562058,11.9879669 0.105572809,12.4819454 C0.0361450918,12.6208008 6.47121774e-16,12.7739139 0,12.929159 L0,30.1875 L0,30.1875 C0,30.6849375 0.280875,31.1390625 0.7258125,31.3621875 L19.5528096,40.7750766 C20.0467945,41.0220531 20.6474623,40.8218132 20.8944388,40.3278283 C20.963859,40.1889789 21,40.0358742 21,39.8806379 L21,22.429159 C21,22.0503869 20.7859976,21.7041238 20.4472136,21.5347318 Z">
-                        </path>
-                      </g>
-                    </g>
-                  </g>
-                </g>
-              </svg>
-            </div>
-            <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Virtual Reality</span>
-          </a>
-        </li>
-
-        <li class="mt-0.5 w-full">
-          <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors"
-            href="./pages/rtl.html">
-            <div
-              class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white bg-center stroke-0 text-center xl:p-2.5">
-              <svg width="12px" height="12px" viewBox="0 0 40 40" version="1.1" xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink">
-                <title>settings</title>
-                <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                  <g transform="translate(-2020.000000, -442.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                    <g transform="translate(1716.000000, 291.000000)">
-                      <g transform="translate(304.000000, 151.000000)">
-                        <polygon class="fill-slate-800 opacity-60"
-                          points="18.0883333 15.7316667 11.1783333 8.82166667 13.3333333 6.66666667 6.66666667 0 0 6.66666667 6.66666667 13.3333333 8.82166667 11.1783333 15.315 17.6716667">
-                        </polygon>
-                        <path class="fill-slate-800 opacity-60"
-                          d="M31.5666667,23.2333333 C31.0516667,23.2933333 30.53,23.3333333 30,23.3333333 C29.4916667,23.3333333 28.9866667,23.3033333 28.48,23.245 L22.4116667,30.7433333 L29.9416667,38.2733333 C32.2433333,40.575 35.9733333,40.575 38.275,38.2733333 L38.275,38.2733333 C40.5766667,35.9716667 40.5766667,32.2416667 38.275,29.94 L31.5666667,23.2333333 Z">
-                        </path>
-                        <path class="fill-slate-800"
-                          d="M33.785,11.285 L28.715,6.215 L34.0616667,0.868333333 C32.82,0.315 31.4483333,0 30,0 C24.4766667,0 20,4.47666667 20,10 C20,10.99 20.1483333,11.9433333 20.4166667,12.8466667 L2.435,27.3966667 C0.95,28.7083333 0.0633333333,30.595 0.00333333333,32.5733333 C-0.0583333333,34.5533333 0.71,36.4916667 2.11,37.89 C3.47,39.2516667 5.27833333,40 7.20166667,40 C9.26666667,40 11.2366667,39.1133333 12.6033333,37.565 L27.1533333,19.5833333 C28.0566667,19.8516667 29.01,20 30,20 C35.5233333,20 40,15.5233333 40,10 C40,8.55166667 39.685,7.18 39.1316667,5.93666667 L33.785,11.285 Z">
-                        </path>
-                      </g>
-                    </g>
-                  </g>
-                </g>
-              </svg>
-            </div>
-            <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">RTL</span>
-          </a>
-        </li>
-
-        <li class="w-full mt-4">
-          <h6 class="pl-6 ml-2 text-xs font-bold leading-tight uppercase opacity-60">Account pages</h6>
-        </li>
-
-        <li class="mt-0.5 w-full">
-          <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors"
-            href="./pages/profile.html">
-            <div
-              class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white bg-center stroke-0 text-center xl:p-2.5">
-              <svg width="12px" height="12px" viewBox="0 0 46 42" version="1.1" xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink">
-                <title>customer-support</title>
-                <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                  <g transform="translate(-1717.000000, -291.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                    <g transform="translate(1716.000000, 291.000000)">
-                      <g transform="translate(1.000000, 0.000000)">
-                        <path class="fill-slate-800 opacity-60"
-                          d="M45,0 L26,0 C25.447,0 25,0.447 25,1 L25,20 C25,20.379 25.214,20.725 25.553,20.895 C25.694,20.965 25.848,21 26,21 C26.212,21 26.424,20.933 26.6,20.8 L34.333,15 L45,15 C45.553,15 46,14.553 46,14 L46,1 C46,0.447 45.553,0 45,0 Z">
-                        </path>
-                        <path class="fill-slate-800"
-                          d="M22.883,32.86 C20.761,32.012 17.324,31 13,31 C8.676,31 5.239,32.012 3.116,32.86 C1.224,33.619 0,35.438 0,37.494 L0,41 C0,41.553 0.447,42 1,42 L25,42 C25.553,42 26,41.553 26,41 L26,37.494 C26,35.438 24.776,33.619 22.883,32.86 Z">
-                        </path>
-                        <path class="fill-slate-800"
-                          d="M13,28 C17.432,28 21,22.529 21,18 C21,13.589 17.411,10 13,10 C8.589,10 5,13.589 5,18 C5,22.529 8.568,28 13,28 Z">
-                        </path>
-                      </g>
-                    </g>
-                  </g>
-                </g>
-              </svg>
-            </div>
-            <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Profile</span>
-          </a>
-        </li>
-
-        <li class="mt-0.5 w-full">
-          <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors"
-            href="./pages/sign-in.html">
-            <div
-              class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white bg-center stroke-0 text-center xl:p-2.5">
-              <svg width="12px" height="12px" viewBox="0 0 40 44" version="1.1" xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink">
-                <title>document</title>
-                <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                  <g transform="translate(-1870.000000, -591.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                    <g transform="translate(1716.000000, 291.000000)">
-                      <g transform="translate(154.000000, 300.000000)">
-                        <path class="fill-slate-800 opacity-60"
-                          d="M40,40 L36.3636364,40 L36.3636364,3.63636364 L5.45454545,3.63636364 L5.45454545,0 L38.1818182,0 C39.1854545,0 40,0.814545455 40,1.81818182 L40,40 Z">
-                        </path>
-                        <path class="fill-slate-800"
-                          d="M30.9090909,7.27272727 L1.81818182,7.27272727 C0.814545455,7.27272727 0,8.08727273 0,9.09090909 L0,41.8181818 C0,42.8218182 0.814545455,43.6363636 1.81818182,43.6363636 L30.9090909,43.6363636 C31.9127273,43.6363636 32.7272727,42.8218182 32.7272727,41.8181818 L32.7272727,9.09090909 C32.7272727,8.08727273 31.9127273,7.27272727 30.9090909,7.27272727 Z M18.1818182,34.5454545 L7.27272727,34.5454545 L7.27272727,30.9090909 L18.1818182,30.9090909 L18.1818182,34.5454545 Z M25.4545455,27.2727273 L7.27272727,27.2727273 L7.27272727,23.6363636 L25.4545455,23.6363636 L25.4545455,27.2727273 Z M25.4545455,20 L7.27272727,20 L7.27272727,16.3636364 L25.4545455,16.3636364 L25.4545455,20 Z">
-                        </path>
-                      </g>
-                    </g>
-                  </g>
-                </g>
-              </svg>
-            </div>
-            <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Sign In</span>
-          </a>
-        </li>
-
-        <li class="mt-0.5 w-full">
-          <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors"
-            href="./pages/sign-up.html">
-            <div
-              class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white bg-center stroke-0 text-center xl:p-2.5">
-              <svg width="12px" height="20px" viewBox="0 0 40 40" version="1.1" xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink">
-                <title>spaceship</title>
-                <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                  <g transform="translate(-1720.000000, -592.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                    <g transform="translate(1716.000000, 291.000000)">
-                      <g transform="translate(4.000000, 301.000000)">
-                        <path class="fill-slate-800"
-                          d="M39.3,0.706666667 C38.9660984,0.370464027 38.5048767,0.192278529 38.0316667,0.216666667 C14.6516667,1.43666667 6.015,22.2633333 5.93166667,22.4733333 C5.68236407,23.0926189 5.82664679,23.8009159 6.29833333,24.2733333 L15.7266667,33.7016667 C16.2013871,34.1756798 16.9140329,34.3188658 17.535,34.065 C17.7433333,33.98 38.4583333,25.2466667 39.7816667,1.97666667 C39.8087196,1.50414529 39.6335979,1.04240574 39.3,0.706666667 Z M25.69,19.0233333 C24.7367525,19.9768687 23.3029475,20.2622391 22.0572426,19.7463614 C20.8115377,19.2304837 19.9992882,18.0149658 19.9992882,16.6666667 C19.9992882,15.3183676 20.8115377,14.1028496 22.0572426,13.5869719 C23.3029475,13.0710943 24.7367525,13.3564646 25.69,14.31 C26.9912731,15.6116662 26.9912731,17.7216672 25.69,19.0233333 L25.69,19.0233333 Z">
-                        </path>
-                        <path class="fill-slate-800 opacity-60"
-                          d="M1.855,31.4066667 C3.05106558,30.2024182 4.79973884,29.7296005 6.43969145,30.1670277 C8.07964407,30.6044549 9.36054508,31.8853559 9.7979723,33.5253085 C10.2353995,35.1652612 9.76258177,36.9139344 8.55833333,38.11 C6.70666667,39.9616667 0,40 0,40 C0,40 0,33.2566667 1.855,31.4066667 Z">
-                        </path>
-                        <path class="fill-slate-800 opacity-60"
-                          d="M17.2616667,3.90166667 C12.4943643,3.07192755 7.62174065,4.61673894 4.20333333,8.04166667 C3.31200265,8.94126033 2.53706177,9.94913142 1.89666667,11.0416667 C1.5109569,11.6966059 1.61721591,12.5295394 2.155,13.0666667 L5.47,16.3833333 C8.55036617,11.4946947 12.5559074,7.25476565 17.2616667,3.90166667 L17.2616667,3.90166667 Z">
-                        </path>
-                        <path class="fill-slate-800 opacity-60"
-                          d="M36.0983333,22.7383333 C36.9280725,27.5056357 35.3832611,32.3782594 31.9583333,35.7966667 C31.0587397,36.6879974 30.0508686,37.4629382 28.9583333,38.1033333 C28.3033941,38.4890431 27.4704606,38.3827841 26.9333333,37.845 L23.6166667,34.53 C28.5053053,31.4496338 32.7452344,27.4440926 36.0983333,22.7383333 L36.0983333,22.7383333 Z">
-                        </path>
-                      </g>
-                    </g>
-                  </g>
-                </g>
-              </svg>
-            </div>
-            <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Sign Up</span>
-          </a>
-        </li>
-      </ul>
-    </div>
-
-    <div class="mx-4">
-      <!-- load phantom colors for card after: -->
-      <p
-        class="invisible hidden text-gray-800 text-red-500 text-red-600 after:bg-gradient-to-tl after:from-gray-900 after:to-slate-800 after:from-blue-600 after:to-cyan-400 after:from-red-500 after:to-yellow-400 after:from-green-600 after:to-lime-400 after:from-red-600 after:to-rose-400 after:from-slate-600 after:to-slate-300 text-lime-500 text-cyan-500 text-slate-400 text-fuchsia-500">
-      </p>
-      <div
-        class="after:opacity-65 after:bg-gradient-to-tl after:from-slate-600 after:to-slate-300 relative flex min-w-0 flex-col items-center break-words rounded-2xl border-0 border-solid border-blue-900 bg-white bg-clip-border shadow-none after:absolute after:top-0 after:bottom-0 after:left-0 after:z-10 after:block after:h-full after:w-full after:rounded-2xl after:content-['']"
-        sidenav-card>
-        <div class="mb-7.5 absolute h-full w-full rounded-2xl bg-cover bg-center"
-          style="background-image: url('./assets/img/curved-images/white-curved.jpeg')"></div>
-        <div class="relative z-20 flex-auto w-full p-4 text-left text-white">
-          <div
-            class="flex items-center justify-center w-8 h-8 mb-4 text-center bg-white bg-center rounded-lg icon shadow-soft-2xl">
-            <i class="top-0 z-10 text-lg leading-none text-transparent ni ni-diamond bg-gradient-to-tl from-slate-600 to-slate-300 bg-clip-text opacity-80"
-              sidenav-card-icon></i>
-          </div>
-          <div class="transition-all duration-200 ease-nav-brand">
-            <h6 class="mb-0 text-white">Need help?</h6>
-            <p class="mt-0 mb-4 text-xs font-semibold leading-tight">Please check our docs</p>
-            <a href="https://www.creative-tim.com/learning-lab/tailwind/html/quick-start/soft-ui-dashboard/"
-              target="_blank"
-              class="inline-block w-full px-8 py-2 mb-0 text-xs font-bold text-center text-black uppercase transition-all ease-in bg-white border-0 border-white rounded-lg shadow-soft-md bg-150 leading-pro hover:shadow-soft-2xl hover:scale-102">Documentation</a>
-          </div>
-        </div>
-      </div>
-      <!-- pro btn  -->
-      <a class="inline-block w-full px-6 py-3 my-4 text-xs font-bold text-center text-white uppercase align-middle transition-all ease-in border-0 rounded-lg select-none shadow-soft-md bg-150 bg-x-25 leading-pro bg-gradient-to-tl from-purple-700 to-pink-500 hover:shadow-soft-2xl hover:scale-102"
-        target="_blank"
-        href="https://www.creative-tim.com/product/soft-ui-dashboard-pro-tailwind?ref=sidebarfree">Upgrade to pro</a>
-    </div>
-  </aside>
-
-  <!-- end sidenav -->
-
-  <main class="ease-soft-in-out xl:ml-68.5 relative h-full max-h-screen rounded-xl transition-all duration-200">
-    <!-- Navbar -->
-    <nav
-      class="relative flex flex-wrap items-center justify-between px-0 py-2 mx-6 transition-all shadow-none duration-250 ease-soft-in rounded-2xl lg:flex-nowrap lg:justify-start"
-      navbar-main navbar-scroll="true">
-      <div class="flex items-center justify-between w-full px-4 py-1 mx-auto flex-wrap-inherit">
-        <nav>
-          <!-- breadcrumb -->
-          <ol class="flex flex-wrap pt-1 mr-12 bg-transparent rounded-lg sm:mr-16">
-            <li class="text-sm leading-normal">
-              <a class="opacity-50 text-slate-700" href="javascript:;">Pages</a>
-            </li>
-            <li
-              class="text-sm pl-2 capitalize leading-normal text-slate-700 before:float-left before:pr-2 before:text-gray-600 before:content-['/']"
-              aria-current="page">Dashboard</li>
-          </ol>
-          <h6 class="mb-0 font-bold capitalize">Dashboard</h6>
-        </nav>
-
-        <div class="flex items-center mt-2 grow sm:mt-0 sm:mr-6 md:mr-0 lg:flex lg:basis-auto">
-          <div class="flex items-center md:ml-auto md:pr-4">
-            <div class="relative flex flex-wrap items-stretch w-full transition-all rounded-lg ease-soft">
-              <span
-                class="text-sm ease-soft leading-5.6 absolute z-50 -ml-px flex h-full items-center whitespace-nowrap rounded-lg rounded-tr-none rounded-br-none border border-r-0 border-transparent bg-transparent py-2 px-2.5 text-center font-normal text-slate-500 transition-all">
-                <i class="fas fa-search"></i>
-              </span>
-              <input type="text"
-                class="pl-8.75 text-sm focus:shadow-soft-primary-outline ease-soft w-1/100 leading-5.6 relative -ml-px block min-w-0 flex-auto rounded-lg border border-solid border-gray-300 bg-white bg-clip-padding py-2 pr-3 text-gray-700 transition-all placeholder:text-gray-500 focus:border-fuchsia-300 focus:outline-none focus:transition-shadow"
-                placeholder="Type here..." />
-            </div>
-          </div>
-          <ul class="flex flex-row justify-end pl-0 mb-0 list-none md-max:w-full">
-            <!-- online builder btn  -->
-            <!-- <li class="flex items-center">
-                <a class="inline-block px-8 py-2 mb-0 mr-4 text-xs font-bold text-center uppercase align-middle transition-all bg-transparent border border-solid rounded-lg shadow-none cursor-pointer leading-pro border-fuchsia-500 ease-soft-in hover:scale-102 active:shadow-soft-xs text-fuchsia-500 hover:border-fuchsia-500 active:bg-fuchsia-500 active:hover:text-fuchsia-500 hover:text-fuchsia-500 tracking-tight-soft hover:bg-transparent hover:opacity-75 hover:shadow-none active:text-white active:hover:bg-transparent" target="_blank" href="https://www.creative-tim.com/builder/soft-ui?ref=navbar-dashboard&amp;_ga=2.76518741.1192788655.1647724933-1242940210.1644448053">Online Builder</a>
-              </li> -->
-            <li class="flex items-center">
-              <a href="./pages/sign-in.html"
-                class="block px-0 py-2 text-sm font-semibold transition-all ease-nav-brand text-slate-500">
-                <i class="fa fa-user sm:mr-1"></i>
-                <span class="hidden sm:inline">Sign In</span>
-              </a>
-            </li>
-            <li class="flex items-center pl-4 xl:hidden">
-              <a href="javascript:;" class="block p-0 text-sm transition-all ease-nav-brand text-slate-500"
-                sidenav-trigger>
-                <div class="w-4.5 overflow-hidden">
-                  <i class="ease-soft mb-0.75 relative block h-0.5 rounded-sm bg-slate-500 transition-all"></i>
-                  <i class="ease-soft mb-0.75 relative block h-0.5 rounded-sm bg-slate-500 transition-all"></i>
-                  <i class="ease-soft relative block h-0.5 rounded-sm bg-slate-500 transition-all"></i>
-                </div>
-              </a>
-            </li>
-            <li class="flex items-center px-4">
-              <a href="javascript:;" class="p-0 text-sm transition-all ease-nav-brand text-slate-500">
-                <i fixed-plugin-button-nav class="cursor-pointer fa fa-cog"></i>
-                <!-- fixed-plugin-button-nav  -->
-              </a>
-            </li>
-
-            <!-- notifications -->
-
-            <li class="relative flex items-center pr-2">
-              <p class="hidden transform-dropdown-show"></p>
-              <a href="javascript:;" class="block p-0 text-sm transition-all ease-nav-brand text-slate-500"
-                dropdown-trigger aria-expanded="false">
-                <i class="cursor-pointer fa fa-bell"></i>
-              </a>
-
-              <ul dropdown-menu
-                class="text-sm transform-dropdown before:font-awesome before:leading-default before:duration-350 before:ease-soft lg:shadow-soft-3xl duration-250 min-w-44 before:sm:right-7.5 before:text-5.5 pointer-events-none absolute right-0 top-0 z-50 origin-top list-none rounded-lg border-0 border-solid border-transparent bg-white bg-clip-padding px-2 py-4 text-left text-slate-500 opacity-0 transition-all before:absolute before:right-2 before:left-auto before:top-0 before:z-50 before:inline-block before:font-normal before:text-white before:antialiased before:transition-all before:content-['\f0d8'] sm:-mr-6 lg:absolute lg:right-0 lg:left-auto lg:mt-2 lg:block lg:cursor-pointer">
-                <!-- add show class on dropdown open js -->
-                <li class="relative mb-2">
-                  <a class="ease-soft py-1.2 clear-both block w-full whitespace-nowrap rounded-lg bg-transparent px-4 duration-300 hover:bg-gray-200 hover:text-slate-700 lg:transition-colors"
-                    href="javascript:;">
-                    <div class="flex py-1">
-                      <div class="my-auto">
-                        <img src="./assets/img/team-2.jpg"
-                          class="inline-flex items-center justify-center mr-4 text-sm text-white h-9 w-9 max-w-none rounded-xl" />
-                      </div>
-                      <div class="flex flex-col justify-center">
-                        <h6 class="mb-1 text-sm font-normal leading-normal"><span class="font-semibold">New
-                            message</span> from Laur</h6>
-                        <p class="mb-0 text-xs leading-tight text-slate-400">
-                          <i class="mr-1 fa fa-clock"></i>
-                          13 minutes ago
-                        </p>
-                      </div>
-                    </div>
-                  </a>
-                </li>
-
-                <li class="relative mb-2">
-                  <a class="ease-soft py-1.2 clear-both block w-full whitespace-nowrap rounded-lg px-4 transition-colors duration-300 hover:bg-gray-200 hover:text-slate-700"
-                    href="javascript:;">
-                    <div class="flex py-1">
-                      <div class="my-auto">
-                        <img src="./assets/img/small-logos/logo-spotify.svg"
-                          class="inline-flex items-center justify-center mr-4 text-sm text-white bg-gradient-to-tl from-gray-900 to-slate-800 h-9 w-9 max-w-none rounded-xl" />
-                      </div>
-                      <div class="flex flex-col justify-center">
-                        <h6 class="mb-1 text-sm font-normal leading-normal"><span class="font-semibold">New album</span>
-                          by Travis Scott</h6>
-                        <p class="mb-0 text-xs leading-tight text-slate-400">
-                          <i class="mr-1 fa fa-clock"></i>
-                          1 day
-                        </p>
-                      </div>
-                    </div>
-                  </a>
-                </li>
-
-                <li class="relative">
-                  <a class="ease-soft py-1.2 clear-both block w-full whitespace-nowrap rounded-lg px-4 transition-colors duration-300 hover:bg-gray-200 hover:text-slate-700"
-                    href="javascript:;">
-                    <div class="flex py-1">
-                      <div
-                        class="inline-flex items-center justify-center my-auto mr-4 text-sm text-white transition-all duration-200 ease-nav-brand bg-gradient-to-tl from-slate-600 to-slate-300 h-9 w-9 rounded-xl">
-                        <svg width="12px" height="12px" viewBox="0 0 43 36" version="1.1"
-                          xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                          <title>credit-card</title>
-                          <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                            <g transform="translate(-2169.000000, -745.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                              <g transform="translate(1716.000000, 291.000000)">
-                                <g transform="translate(453.000000, 454.000000)">
-                                  <path class="color-background"
-                                    d="M43,10.7482083 L43,3.58333333 C43,1.60354167 41.3964583,0 39.4166667,0 L3.58333333,0 C1.60354167,0 0,1.60354167 0,3.58333333 L0,10.7482083 L43,10.7482083 Z"
-                                    opacity="0.593633743"></path>
-                                  <path class="color-background"
-                                    d="M0,16.125 L0,32.25 C0,34.2297917 1.60354167,35.8333333 3.58333333,35.8333333 L39.4166667,35.8333333 C41.3964583,35.8333333 43,34.2297917 43,32.25 L43,16.125 L0,16.125 Z M19.7083333,26.875 L7.16666667,26.875 L7.16666667,23.2916667 L19.7083333,23.2916667 L19.7083333,26.875 Z M35.8333333,26.875 L28.6666667,26.875 L28.6666667,23.2916667 L35.8333333,23.2916667 L35.8333333,26.875 Z">
-                                  </path>
-                                </g>
-                              </g>
-                            </g>
-                          </g>
-                        </svg>
-                      </div>
-                      <div class="flex flex-col justify-center">
-                        <h6 class="mb-1 text-sm font-normal leading-normal">Payment successfully completed</h6>
-                        <p class="mb-0 text-xs leading-tight text-slate-400">
-                          <i class="mr-1 fa fa-clock"></i>
-                          2 days
-                        </p>
-                      </div>
-                    </div>
-                  </a>
-                </li>
-              </ul>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
-
-    <!-- end Navbar -->
-
-    <!-- cards -->
-    <div class="w-full px-6 py-6 mx-auto">
-      <!-- row 1 -->
-      <div class="flex flex-wrap -mx-3">
-        <!-- card1 -->
-        <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-          <div class="relative flex flex-col min-w-0 break-words bg-white shadow-soft-xl rounded-2xl bg-clip-border">
-            <div class="flex-auto p-4">
-              <div class="flex flex-row -mx-3">
-                <div class="flex-none w-2/3 max-w-full px-3">
-                  <div>
-                    <p class="mb-0 font-sans text-sm font-semibold leading-normal">Today's Money</p>
-                    <h5 class="mb-0 font-bold">
-                      $53,000
-                      <span class="text-sm leading-normal font-weight-bolder text-lime-500">+55%</span>
-                    </h5>
-                  </div>
-                </div>
-                <div class="px-3 text-right basis-1/3">
-                  <div
-                    class="inline-block w-12 h-12 text-center rounded-lg bg-gradient-to-tl from-purple-700 to-pink-500">
-                    <i class="ni leading-none ni-money-coins text-lg relative top-3.5 text-white"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- card2 -->
-        <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-          <div class="relative flex flex-col min-w-0 break-words bg-white shadow-soft-xl rounded-2xl bg-clip-border">
-            <div class="flex-auto p-4">
-              <div class="flex flex-row -mx-3">
-                <div class="flex-none w-2/3 max-w-full px-3">
-                  <div>
-                    <p class="mb-0 font-sans text-sm font-semibold leading-normal">Today's Users</p>
-                    <h5 class="mb-0 font-bold">
-                      2,300
-                      <span class="text-sm leading-normal font-weight-bolder text-lime-500">+3%</span>
-                    </h5>
-                  </div>
-                </div>
-                <div class="px-3 text-right basis-1/3">
-                  <div
-                    class="inline-block w-12 h-12 text-center rounded-lg bg-gradient-to-tl from-purple-700 to-pink-500">
-                    <i class="ni leading-none ni-world text-lg relative top-3.5 text-white"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- card3 -->
-        <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-          <div class="relative flex flex-col min-w-0 break-words bg-white shadow-soft-xl rounded-2xl bg-clip-border">
-            <div class="flex-auto p-4">
-              <div class="flex flex-row -mx-3">
-                <div class="flex-none w-2/3 max-w-full px-3">
-                  <div>
-                    <p class="mb-0 font-sans text-sm font-semibold leading-normal">New Clients</p>
-                    <h5 class="mb-0 font-bold">
-                      +3,462
-                      <span class="text-sm leading-normal text-red-600 font-weight-bolder">-2%</span>
-                    </h5>
-                  </div>
-                </div>
-                <div class="px-3 text-right basis-1/3">
-                  <div
-                    class="inline-block w-12 h-12 text-center rounded-lg bg-gradient-to-tl from-purple-700 to-pink-500">
-                    <i class="ni leading-none ni-paper-diploma text-lg relative top-3.5 text-white"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- card4 -->
-        <div class="w-full max-w-full px-3 sm:w-1/2 sm:flex-none xl:w-1/4">
-          <div class="relative flex flex-col min-w-0 break-words bg-white shadow-soft-xl rounded-2xl bg-clip-border">
-            <div class="flex-auto p-4">
-              <div class="flex flex-row -mx-3">
-                <div class="flex-none w-2/3 max-w-full px-3">
-                  <div>
-                    <p class="mb-0 font-sans text-sm font-semibold leading-normal">Sales</p>
-                    <h5 class="mb-0 font-bold">
-                      $103,430
-                      <span class="text-sm leading-normal font-weight-bolder text-lime-500">+5%</span>
-                    </h5>
-                  </div>
-                </div>
-                <div class="px-3 text-right basis-1/3">
-                  <div
-                    class="inline-block w-12 h-12 text-center rounded-lg bg-gradient-to-tl from-purple-700 to-pink-500">
-                    <i class="ni leading-none ni-cart text-lg relative top-3.5 text-white"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- cards row 2 -->
-      <div class="flex flex-wrap mt-6 -mx-3">
-        <div class="w-full px-3 mb-6 lg:mb-0 lg:w-7/12 lg:flex-none">
-          <div class="relative flex flex-col min-w-0 break-words bg-white shadow-soft-xl rounded-2xl bg-clip-border">
-            <div class="flex-auto p-4">
-              <div class="flex flex-wrap -mx-3">
-                <div class="max-w-full px-3 lg:w-1/2 lg:flex-none">
-                  <div class="flex flex-col h-full">
-                    <p class="pt-2 mb-1 font-semibold">Built by developers</p>
-                    <h5 class="font-bold">Soft UI Dashboard</h5>
-                    <p class="mb-12">From colors, cards, typography to complex elements, you will find the full
-                      documentation.</p>
-                    <a class="mt-auto mb-0 text-sm font-semibold leading-normal group text-slate-500"
-                      href="javascript:;">
-                      Read More
-                      <i
-                        class="fas fa-arrow-right ease-bounce text-sm group-hover:translate-x-1.25 ml-1 leading-normal transition-all duration-200"></i>
-                    </a>
-                  </div>
-                </div>
-                <div class="max-w-full px-3 mt-12 ml-auto text-center lg:mt-0 lg:w-5/12 lg:flex-none">
-                  <div class="h-full bg-gradient-to-tl from-purple-700 to-pink-500 rounded-xl">
-                    <img src="./assets/img/shapes/waves-white.svg" class="absolute top-0 hidden w-1/2 h-full lg:block"
-                      alt="waves" />
-                    <div class="relative flex items-center justify-center h-full">
-                      <img class="relative z-20 w-full pt-6" src="./assets/img/illustrations/rocket-white.png"
-                        alt="rocket" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="w-full max-w-full px-3 lg:w-5/12 lg:flex-none">
-          <div
-            class="border-black/12.5 shadow-soft-xl relative flex h-full min-w-0 flex-col break-words rounded-2xl border-0 border-solid bg-white bg-clip-border p-4">
-            <div class="relative h-full overflow-hidden bg-cover rounded-xl"
-              style="background-image: url('./assets/img/ivancik.jpg')">
-              <span
-                class="absolute top-0 left-0 w-full h-full bg-center bg-cover bg-gradient-to-tl from-gray-900 to-slate-800 opacity-80"></span>
-              <div class="relative z-10 flex flex-col flex-auto h-full p-4">
-                <h5 class="pt-2 mb-6 font-bold text-white">Work with the rockets</h5>
-                <p class="text-white">Wealth creation is an evolutionarily recent positive-sum game. It is all about who
-                  take the opportunity first.</p>
-                <a class="mt-auto mb-0 text-sm font-semibold leading-normal text-white group" href="javascript:;">
-                  Read More
-                  <i
-                    class="fas fa-arrow-right ease-bounce text-sm group-hover:translate-x-1.25 ml-1 leading-normal transition-all duration-200"></i>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- cards row 3 -->
-
-      <div class="flex flex-wrap mt-6 -mx-3">
-        <div class="w-full max-w-full px-3 mt-0 mb-6 lg:mb-0 lg:w-5/12 lg:flex-none">
-          <div
-            class="border-black/12.5 shadow-soft-xl relative z-20 flex min-w-0 flex-col break-words rounded-2xl border-0 border-solid bg-white bg-clip-border">
-            <div class="flex-auto p-4">
-              <div class="py-4 pr-1 mb-4 bg-gradient-to-tl from-gray-900 to-slate-800 rounded-xl">
-                <div>
-                  <canvas id="chart-bars" height="170"></canvas>
-                </div>
-              </div>
-              <h6 class="mt-6 mb-0 ml-2">Active Users</h6>
-              <p class="ml-2 text-sm leading-normal">(<span class="font-bold">+23%</span>) than last week</p>
-              <div class="w-full px-6 mx-auto max-w-screen-2xl rounded-xl">
-                <div class="flex flex-wrap mt-0 -mx-3">
-                  <div class="flex-none w-1/4 max-w-full py-4 pl-0 pr-3 mt-0">
-                    <div class="flex mb-2">
-                      <div
-                        class="flex items-center justify-center w-5 h-5 mr-2 text-center bg-center rounded fill-current shadow-soft-2xl bg-gradient-to-tl from-purple-700 to-pink-500 text-neutral-900">
-                        <svg width="10px" height="10px" viewBox="0 0 40 44" version="1.1"
-                          xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                          <title>document</title>
-                          <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                            <g transform="translate(-1870.000000, -591.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                              <g transform="translate(1716.000000, 291.000000)">
-                                <g transform="translate(154.000000, 300.000000)">
-                                  <path class="color-background"
-                                    d="M40,40 L36.3636364,40 L36.3636364,3.63636364 L5.45454545,3.63636364 L5.45454545,0 L38.1818182,0 C39.1854545,0 40,0.814545455 40,1.81818182 L40,40 Z"
-                                    opacity="0.603585379"></path>
-                                  <path class="color-background"
-                                    d="M30.9090909,7.27272727 L1.81818182,7.27272727 C0.814545455,7.27272727 0,8.08727273 0,9.09090909 L0,41.8181818 C0,42.8218182 0.814545455,43.6363636 1.81818182,43.6363636 L30.9090909,43.6363636 C31.9127273,43.6363636 32.7272727,42.8218182 32.7272727,41.8181818 L32.7272727,9.09090909 C32.7272727,8.08727273 31.9127273,7.27272727 30.9090909,7.27272727 Z M18.1818182,34.5454545 L7.27272727,34.5454545 L7.27272727,30.9090909 L18.1818182,30.9090909 L18.1818182,34.5454545 Z M25.4545455,27.2727273 L7.27272727,27.2727273 L7.27272727,23.6363636 L25.4545455,23.6363636 L25.4545455,27.2727273 Z M25.4545455,20 L7.27272727,20 L7.27272727,16.3636364 L25.4545455,16.3636364 L25.4545455,20 Z">
-                                  </path>
-                                </g>
-                              </g>
-                            </g>
-                          </g>
-                        </svg>
-                      </div>
-                      <p class="mt-1 mb-0 text-xs font-semibold leading-tight">Users</p>
-                    </div>
-                    <h4 class="font-bold">36K</h4>
-                    <div class="text-xs h-0.75 flex w-3/4 overflow-visible rounded-lg bg-gray-200">
-                      <div
-                        class="duration-600 ease-soft -mt-0.38 -ml-px flex h-1.5 w-3/5 flex-col justify-center overflow-hidden whitespace-nowrap rounded-lg bg-slate-700 text-center text-white transition-all"
-                        role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </div>
-                  <div class="flex-none w-1/4 max-w-full py-4 pl-0 pr-3 mt-0">
-                    <div class="flex mb-2">
-                      <div
-                        class="flex items-center justify-center w-5 h-5 mr-2 text-center bg-center rounded fill-current shadow-soft-2xl bg-gradient-to-tl from-blue-600 to-cyan-400 text-neutral-900">
-                        <svg width="10px" height="10px" viewBox="0 0 40 40" version="1.1"
-                          xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                          <title>spaceship</title>
-                          <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                            <g transform="translate(-1720.000000, -592.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                              <g transform="translate(1716.000000, 291.000000)">
-                                <g transform="translate(4.000000, 301.000000)">
-                                  <path class="color-background"
-                                    d="M39.3,0.706666667 C38.9660984,0.370464027 38.5048767,0.192278529 38.0316667,0.216666667 C14.6516667,1.43666667 6.015,22.2633333 5.93166667,22.4733333 C5.68236407,23.0926189 5.82664679,23.8009159 6.29833333,24.2733333 L15.7266667,33.7016667 C16.2013871,34.1756798 16.9140329,34.3188658 17.535,34.065 C17.7433333,33.98 38.4583333,25.2466667 39.7816667,1.97666667 C39.8087196,1.50414529 39.6335979,1.04240574 39.3,0.706666667 Z M25.69,19.0233333 C24.7367525,19.9768687 23.3029475,20.2622391 22.0572426,19.7463614 C20.8115377,19.2304837 19.9992882,18.0149658 19.9992882,16.6666667 C19.9992882,15.3183676 20.8115377,14.1028496 22.0572426,13.5869719 C23.3029475,13.0710943 24.7367525,13.3564646 25.69,14.31 C26.9912731,15.6116662 26.9912731,17.7216672 25.69,19.0233333 L25.69,19.0233333 Z">
-                                  </path>
-                                  <path class="color-background"
-                                    d="M1.855,31.4066667 C3.05106558,30.2024182 4.79973884,29.7296005 6.43969145,30.1670277 C8.07964407,30.6044549 9.36054508,31.8853559 9.7979723,33.5253085 C10.2353995,35.1652612 9.76258177,36.9139344 8.55833333,38.11 C6.70666667,39.9616667 0,40 0,40 C0,40 0,33.2566667 1.855,31.4066667 Z">
-                                  </path>
-                                  <path class="color-background"
-                                    d="M17.2616667,3.90166667 C12.4943643,3.07192755 7.62174065,4.61673894 4.20333333,8.04166667 C3.31200265,8.94126033 2.53706177,9.94913142 1.89666667,11.0416667 C1.5109569,11.6966059 1.61721591,12.5295394 2.155,13.0666667 L5.47,16.3833333 C8.55036617,11.4946947 12.5559074,7.25476565 17.2616667,3.90166667 L17.2616667,3.90166667 Z"
-                                    opacity="0.598539807"></path>
-                                  <path class="color-background"
-                                    d="M36.0983333,22.7383333 C36.9280725,27.5056357 35.3832611,32.3782594 31.9583333,35.7966667 C31.0587397,36.6879974 30.0508686,37.4629382 28.9583333,38.1033333 C28.3033941,38.4890431 27.4704606,38.3827841 26.9333333,37.845 L23.6166667,34.53 C28.5053053,31.4496338 32.7452344,27.4440926 36.0983333,22.7383333 L36.0983333,22.7383333 Z"
-                                    opacity="0.598539807"></path>
-                                </g>
-                              </g>
-                            </g>
-                          </g>
-                        </svg>
-                      </div>
-                      <p class="mt-1 mb-0 text-xs font-semibold leading-tight">Clicks</p>
-                    </div>
-                    <h4 class="font-bold">2m</h4>
-                    <div class="text-xs h-0.75 flex w-3/4 overflow-visible rounded-lg bg-gray-200">
-                      <div
-                        class="duration-600 ease-soft -mt-0.38 w-9/10 -ml-px flex h-1.5 flex-col justify-center overflow-hidden whitespace-nowrap rounded-lg bg-slate-700 text-center text-white transition-all"
-                        role="progressbar" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </div>
-                  <div class="flex-none w-1/4 max-w-full py-4 pl-0 pr-3 mt-0">
-                    <div class="flex mb-2">
-                      <div
-                        class="flex items-center justify-center w-5 h-5 mr-2 text-center bg-center rounded fill-current shadow-soft-2xl bg-gradient-to-tl from-red-500 to-yellow-400 text-neutral-900">
-                        <svg width="10px" height="10px" viewBox="0 0 43 36" version="1.1"
-                          xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                          <title>credit-card</title>
-                          <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                            <g transform="translate(-2169.000000, -745.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                              <g transform="translate(1716.000000, 291.000000)">
-                                <g transform="translate(453.000000, 454.000000)">
-                                  <path class="color-background"
-                                    d="M43,10.7482083 L43,3.58333333 C43,1.60354167 41.3964583,0 39.4166667,0 L3.58333333,0 C1.60354167,0 0,1.60354167 0,3.58333333 L0,10.7482083 L43,10.7482083 Z"
-                                    opacity="0.593633743"></path>
-                                  <path class="color-background"
-                                    d="M0,16.125 L0,32.25 C0,34.2297917 1.60354167,35.8333333 3.58333333,35.8333333 L39.4166667,35.8333333 C41.3964583,35.8333333 43,34.2297917 43,32.25 L43,16.125 L0,16.125 Z M19.7083333,26.875 L7.16666667,26.875 L7.16666667,23.2916667 L19.7083333,23.2916667 L19.7083333,26.875 Z M35.8333333,26.875 L28.6666667,26.875 L28.6666667,23.2916667 L35.8333333,23.2916667 L35.8333333,26.875 Z">
-                                  </path>
-                                </g>
-                              </g>
-                            </g>
-                          </g>
-                        </svg>
-                      </div>
-                      <p class="mt-1 mb-0 text-xs font-semibold leading-tight">Sales</p>
-                    </div>
-                    <h4 class="font-bold">435$</h4>
-                    <div class="text-xs h-0.75 flex w-3/4 overflow-visible rounded-lg bg-gray-200">
-                      <div
-                        class="duration-600 ease-soft -mt-0.38 w-3/10 -ml-px flex h-1.5 flex-col justify-center overflow-hidden whitespace-nowrap rounded-lg bg-slate-700 text-center text-white transition-all"
-                        role="progressbar" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </div>
-                  <div class="flex-none w-1/4 max-w-full py-4 pl-0 pr-3 mt-0">
-                    <div class="flex mb-2">
-                      <div
-                        class="flex items-center justify-center w-5 h-5 mr-2 text-center bg-center rounded fill-current shadow-soft-2xl bg-gradient-to-tl from-red-600 to-rose-400 text-neutral-900">
-                        <svg width="10px" height="10px" viewBox="0 0 40 40" version="1.1"
-                          xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                          <title>settings</title>
-                          <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                            <g transform="translate(-2020.000000, -442.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                              <g transform="translate(1716.000000, 291.000000)">
-                                <g transform="translate(304.000000, 151.000000)">
-                                  <polygon class="color-background" opacity="0.596981957"
-                                    points="18.0883333 15.7316667 11.1783333 8.82166667 13.3333333 6.66666667 6.66666667 0 0 6.66666667 6.66666667 13.3333333 8.82166667 11.1783333 15.315 17.6716667">
-                                  </polygon>
-                                  <path class="color-background"
-                                    d="M31.5666667,23.2333333 C31.0516667,23.2933333 30.53,23.3333333 30,23.3333333 C29.4916667,23.3333333 28.9866667,23.3033333 28.48,23.245 L22.4116667,30.7433333 L29.9416667,38.2733333 C32.2433333,40.575 35.9733333,40.575 38.275,38.2733333 L38.275,38.2733333 C40.5766667,35.9716667 40.5766667,32.2416667 38.275,29.94 L31.5666667,23.2333333 Z"
-                                    opacity="0.596981957"></path>
-                                  <path class="color-background"
-                                    d="M33.785,11.285 L28.715,6.215 L34.0616667,0.868333333 C32.82,0.315 31.4483333,0 30,0 C24.4766667,0 20,4.47666667 20,10 C20,10.99 20.1483333,11.9433333 20.4166667,12.8466667 L2.435,27.3966667 C0.95,28.7083333 0.0633333333,30.595 0.00333333333,32.5733333 C-0.0583333333,34.5533333 0.71,36.4916667 2.11,37.89 C3.47,39.2516667 5.27833333,40 7.20166667,40 C9.26666667,40 11.2366667,39.1133333 12.6033333,37.565 L27.1533333,19.5833333 C28.0566667,19.8516667 29.01,20 30,20 C35.5233333,20 40,15.5233333 40,10 C40,8.55166667 39.685,7.18 39.1316667,5.93666667 L33.785,11.285 Z">
-                                  </path>
-                                </g>
-                              </g>
-                            </g>
-                          </g>
-                        </svg>
-                      </div>
-                      <p class="mt-1 mb-0 text-xs font-semibold leading-tight">Items</p>
-                    </div>
-                    <h4 class="font-bold">43</h4>
-                    <div class="text-xs h-0.75 flex w-3/4 overflow-visible rounded-lg bg-gray-200">
-                      <div
-                        class="duration-600 ease-soft -mt-0.38 -ml-px flex h-1.5 w-1/2 flex-col justify-center overflow-hidden whitespace-nowrap rounded-lg bg-slate-700 text-center text-white transition-all"
-                        role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="w-full max-w-full px-3 mt-0 lg:w-7/12 lg:flex-none">
-          <div
-            class="border-black/12.5 shadow-soft-xl relative z-20 flex min-w-0 flex-col break-words rounded-2xl border-0 border-solid bg-white bg-clip-border">
-            <div class="border-black/12.5 mb-0 rounded-t-2xl border-b-0 border-solid bg-white p-6 pb-0">
-              <h6>Sales overview</h6>
-              <p class="text-sm leading-normal">
-                <i class="fa fa-arrow-up text-lime-500"></i>
-                <span class="font-semibold">4% more</span> in 2021
-              </p>
-            </div>
-            <div class="flex-auto p-4">
-              <div>
-                <canvas id="chart-line" height="300"></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- cards row 4 -->
-
-      <div class="flex flex-wrap my-6 -mx-3">
-        <!-- card 1 -->
-
-        <div class="w-full max-w-full px-3 mt-0 mb-6 md:mb-0 md:w-1/2 md:flex-none lg:w-2/3 lg:flex-none">
-          <div
-            class="border-black/12.5 shadow-soft-xl relative flex min-w-0 flex-col break-words rounded-2xl border-0 border-solid bg-white bg-clip-border">
-            <div class="border-black/12.5 mb-0 rounded-t-2xl border-b-0 border-solid bg-white p-6 pb-0">
-              <div class="flex flex-wrap mt-0 -mx-3">
-                <div class="flex-none w-7/12 max-w-full px-3 mt-0 lg:w-1/2 lg:flex-none">
-                  <h6>Projects</h6>
-                  <p class="mb-0 text-sm leading-normal">
-                    <i class="fa fa-check text-cyan-500"></i>
-                    <span class="ml-1 font-semibold">30 done</span>
-                    this month
-                  </p>
-                </div>
-                <div class="flex-none w-5/12 max-w-full px-3 my-auto text-right lg:w-1/2 lg:flex-none">
-                  <div class="relative pr-6 lg:float-right">
-                    <a dropdown-trigger class="cursor-pointer" aria-expanded="false">
-                      <i class="fa fa-ellipsis-v text-slate-400"></i>
-                    </a>
-                    <p class="hidden transform-dropdown-show"></p>
-
-                    <ul dropdown-menu
-                      class="z-100 text-sm transform-dropdown shadow-soft-3xl duration-250 before:duration-350 before:font-awesome before:ease-soft min-w-44 -ml-34 before:text-5.5 pointer-events-none absolute top-0 m-0 mt-2 list-none rounded-lg border-0 border-solid border-transparent bg-white bg-clip-padding px-2 py-4 text-left text-slate-500 opacity-0 transition-all before:absolute before:top-0 before:right-7 before:left-auto before:z-40 before:text-white before:transition-all before:content-['\f0d8']">
-                      <li class="relative">
-                        <a class="py-1.2 lg:ease-soft clear-both block w-full whitespace-nowrap rounded-lg border-0 bg-transparent px-4 text-left font-normal text-slate-500 lg:transition-colors lg:duration-300"
-                          href="javascript:;">Action</a>
-                      </li>
-                      <li class="relative">
-                        <a class="py-1.2 lg:ease-soft clear-both block w-full whitespace-nowrap rounded-lg border-0 bg-transparent px-4 text-left font-normal text-slate-500 lg:transition-colors lg:duration-300"
-                          href="javascript:;">Another action</a>
-                      </li>
-                      <li class="relative">
-                        <a class="py-1.2 lg:ease-soft clear-both block w-full whitespace-nowrap rounded-lg border-0 bg-transparent px-4 text-left font-normal text-slate-500 lg:transition-colors lg:duration-300"
-                          href="javascript:;">Something else here</a>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="flex-auto p-6 px-0 pb-2">
-              <div class="overflow-x-auto">
-                <table class="items-center w-full mb-0 align-top border-gray-200 text-slate-500">
-                  <thead class="align-bottom">
-                    <tr>
-                      <th
-                        class="px-6 py-3 font-bold tracking-normal text-left uppercase align-middle bg-transparent border-b letter border-b-solid text-xxs whitespace-nowrap border-b-gray-200 text-slate-400 opacity-70">
-                        Companies</th>
-                      <th
-                        class="px-6 py-3 pl-2 font-bold tracking-normal text-left uppercase align-middle bg-transparent border-b letter border-b-solid text-xxs whitespace-nowrap border-b-gray-200 text-slate-400 opacity-70">
-                        Members</th>
-                      <th
-                        class="px-6 py-3 font-bold tracking-normal text-center uppercase align-middle bg-transparent border-b letter border-b-solid text-xxs whitespace-nowrap border-b-gray-200 text-slate-400 opacity-70">
-                        Budget</th>
-                      <th
-                        class="px-6 py-3 font-bold tracking-normal text-center uppercase align-middle bg-transparent border-b letter border-b-solid text-xxs whitespace-nowrap border-b-gray-200 text-slate-400 opacity-70">
-                        Completion</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="flex px-2 py-1">
-                          <div>
-                            <img src="./assets/img/small-logos/logo-xd.svg"
-                              class="inline-flex items-center justify-center mr-4 text-sm text-white transition-all duration-200 ease-soft-in-out h-9 w-9 rounded-xl"
-                              alt="xd" />
-                          </div>
-                          <div class="flex flex-col justify-center">
-                            <h6 class="mb-0 text-sm leading-normal">Soft UI XD Version</h6>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="mt-2 avatar-group">
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-1.jpg" class="w-full rounded-full" alt="team1" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Ryan Tompson
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 -ml-4 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-2.jpg" class="w-full rounded-full" alt="team2" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Romina Hadid
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 -ml-4 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-3.jpg" class="w-full rounded-full" alt="team3" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Alexander Smith
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 -ml-4 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-4.jpg" class="w-full rounded-full" alt="team4" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Jessica Doe
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                        </div>
-                      </td>
-                      <td
-                        class="p-2 text-sm leading-normal text-center align-middle bg-transparent border-b whitespace-nowrap">
-                        <span class="text-xs font-semibold leading-tight"> $14,000 </span>
-                      </td>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="w-3/4 mx-auto">
-                          <div>
-                            <div>
-                              <span class="text-xs font-semibold leading-tight">60%</span>
-                            </div>
-                          </div>
-                          <div class="text-xs h-0.75 w-30 m-0 flex overflow-visible rounded-lg bg-gray-200">
-                            <div
-                              class="duration-600 ease-soft bg-gradient-to-tl from-blue-600 to-cyan-400 -mt-0.38 -ml-px flex h-1.5 w-3/5 flex-col justify-center overflow-hidden whitespace-nowrap rounded bg-fuchsia-500 text-center text-white transition-all"
-                              role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="flex px-2 py-1">
-                          <div>
-                            <img src="./assets/img/small-logos/logo-atlassian.svg"
-                              class="inline-flex items-center justify-center mr-4 text-sm text-white transition-all duration-200 ease-soft-in-out h-9 w-9 rounded-xl"
-                              alt="atlassian" />
-                          </div>
-                          <div class="flex flex-col justify-center">
-                            <h6 class="mb-0 text-sm leading-normal">Add Progress Track</h6>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="mt-2 avatar-group">
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-2.jpg" class="w-full rounded-full" alt="team5" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Romina Hadid
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 -ml-4 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-4.jpg" class="w-full rounded-full" alt="team6" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Jessica Doe
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                        </div>
-                      </td>
-                      <td
-                        class="p-2 text-sm leading-normal text-center align-middle bg-transparent border-b whitespace-nowrap">
-                        <span class="text-xs font-semibold leading-tight"> $3,000 </span>
-                      </td>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="w-3/4 mx-auto">
-                          <div>
-                            <div>
-                              <span class="text-xs font-semibold leading-tight">10%</span>
-                            </div>
-                          </div>
-                          <div class="text-xs h-0.75 w-30 m-0 flex overflow-visible rounded-lg bg-gray-200">
-                            <div
-                              class="duration-600 ease-soft bg-gradient-to-tl from-blue-600 to-cyan-400 -mt-0.38 w-1/10 -ml-px flex h-1.5 flex-col justify-center overflow-hidden whitespace-nowrap rounded bg-fuchsia-500 text-center text-white transition-all"
-                              role="progressbar" aria-valuenow="10" aria-valuemin="0" aria-valuemax="100"></div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="flex px-2 py-1">
-                          <div>
-                            <img src="./assets/img/small-logos/logo-slack.svg"
-                              class="inline-flex items-center justify-center mr-4 text-sm text-white transition-all duration-200 ease-soft-in-out h-9 w-9 rounded-xl"
-                              alt="team7" />
-                          </div>
-                          <div class="flex flex-col justify-center">
-                            <h6 class="mb-0 text-sm leading-normal">Fix Platform Errors</h6>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="mt-2 avatar-group">
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-3.jpg" class="w-full rounded-full" alt="team8" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Romina Hadid
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 -ml-4 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-1.jpg" class="w-full rounded-full" alt="team9" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Jessica Doe
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                        </div>
-                      </td>
-                      <td
-                        class="p-2 text-sm leading-normal text-center align-middle bg-transparent border-b whitespace-nowrap">
-                        <span class="text-xs font-semibold leading-tight"> Not set </span>
-                      </td>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="w-3/4 mx-auto">
-                          <div>
-                            <div>
-                              <span class="text-xs font-semibold leading-tight">100%</span>
-                            </div>
-                          </div>
-                          <div class="text-xs h-0.75 w-30 m-0 flex overflow-visible rounded-lg bg-gray-200">
-                            <div
-                              class="duration-600 ease-soft bg-gradient-to-tl from-green-600 to-lime-400 -mt-0.38 -ml-px flex h-1.5 w-full flex-col justify-center overflow-hidden whitespace-nowrap rounded bg-fuchsia-500 text-center text-white transition-all"
-                              role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="flex px-2 py-1">
-                          <div>
-                            <img src="./assets/img/small-logos/logo-spotify.svg"
-                              class="inline-flex items-center justify-center mr-4 text-sm text-white transition-all duration-200 ease-soft-in-out h-9 w-9 rounded-xl"
-                              alt="spotify" />
-                          </div>
-                          <div class="flex flex-col justify-center">
-                            <h6 class="mb-0 text-sm leading-normal">Launch our Mobile App</h6>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="mt-2 avatar-group">
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-4.jpg" class="w-full rounded-full" alt="user1" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Ryan Tompson
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 -ml-4 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-3.jpg" class="w-full rounded-full" alt="user2" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Romina Hadid
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 -ml-4 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-4.jpg" class="w-full rounded-full" alt="user3" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Alexander Smith
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 -ml-4 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-1.jpg" class="w-full rounded-full" alt="user4" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Jessica Doe
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                        </div>
-                      </td>
-                      <td
-                        class="p-2 text-sm leading-normal text-center align-middle bg-transparent border-b whitespace-nowrap">
-                        <span class="text-xs font-semibold leading-tight"> $20,500 </span>
-                      </td>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="w-3/4 mx-auto">
-                          <div>
-                            <div>
-                              <span class="text-xs font-semibold leading-tight">100%</span>
-                            </div>
-                          </div>
-                          <div class="text-xs h-0.75 w-30 m-0 flex overflow-visible rounded-lg bg-gray-200">
-                            <div
-                              class="duration-600 ease-soft bg-gradient-to-tl from-green-600 to-lime-400 -mt-0.38 -ml-px flex h-1.5 w-full flex-col justify-center overflow-hidden whitespace-nowrap rounded bg-fuchsia-500 text-center text-white transition-all"
-                              role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="flex px-2 py-1">
-                          <div>
-                            <img src="./assets/img/small-logos/logo-jira.svg"
-                              class="inline-flex items-center justify-center mr-4 text-sm text-white transition-all duration-200 ease-soft-in-out h-9 w-9 rounded-xl"
-                              alt="jira" />
-                          </div>
-                          <div class="flex flex-col justify-center">
-                            <h6 class="mb-0 text-sm leading-normal">Add the New Pricing Page</h6>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="mt-2 avatar-group">
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-4.jpg" class="w-full rounded-full" alt="user5" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Ryan Tompson
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                        </div>
-                      </td>
-                      <td
-                        class="p-2 text-sm leading-normal text-center align-middle bg-transparent border-b whitespace-nowrap">
-                        <span class="text-xs font-semibold leading-tight"> $500 </span>
-                      </td>
-                      <td class="p-2 align-middle bg-transparent border-b whitespace-nowrap">
-                        <div class="w-3/4 mx-auto">
-                          <div>
-                            <div>
-                              <span class="text-xs font-semibold leading-tight">25%</span>
-                            </div>
-                          </div>
-                          <div class="text-xs h-0.75 w-30 m-0 flex overflow-visible rounded-lg bg-gray-200">
-                            <div
-                              class="duration-600 ease-soft bg-gradient-to-tl from-blue-600 to-cyan-400 -mt-0.38 -ml-px flex h-1.5 w-1/4 flex-col justify-center overflow-hidden whitespace-nowrap rounded bg-fuchsia-500 text-center text-white transition-all"
-                              role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="25"></div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="p-2 align-middle bg-transparent border-0 whitespace-nowrap">
-                        <div class="flex px-2 py-1">
-                          <div>
-                            <img src="./assets/img/small-logos/logo-invision.svg"
-                              class="inline-flex items-center justify-center mr-4 text-sm text-white transition-all duration-200 ease-soft-in-out h-9 w-9 rounded-xl"
-                              alt="invision" />
-                          </div>
-                          <div class="flex flex-col justify-center">
-                            <h6 class="mb-0 text-sm leading-normal">Redesign New Online Shop</h6>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="p-2 align-middle bg-transparent border-0 whitespace-nowrap">
-                        <div class="mt-2 avatar-group">
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-1.jpg" class="w-full rounded-full" alt="user6" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Ryan Tompson
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                          <a href="javascript:;"
-                            class="relative z-20 inline-flex items-center justify-center w-6 h-6 -ml-4 text-xs text-white transition-all duration-200 border-2 border-white border-solid rounded-full ease-soft-in-out hover:z-30"
-                            data-target="tooltip_trigger" data-placement="bottom">
-                            <img src="./assets/img/team-4.jpg" class="w-full rounded-full" alt="user7" />
-                          </a>
-                          <div data-target="tooltip" class="hidden px-2 py-1 text-sm text-white bg-black rounded-lg"
-                            role="tooltip">
-                            Jessica Doe
-                            <div
-                              class="invisible absolute h-2 w-2 bg-inherit before:visible before:absolute before:h-2 before:w-2 before:rotate-45 before:bg-inherit before:content-['']"
-                              data-popper-arrow></div>
-                          </div>
-                        </div>
-                      </td>
-                      <td
-                        class="p-2 text-sm leading-normal text-center align-middle bg-transparent border-0 whitespace-nowrap">
-                        <span class="text-xs font-semibold leading-tight"> $2,000 </span>
-                      </td>
-                      <td class="p-2 align-middle bg-transparent border-0 whitespace-nowrap">
-                        <div class="w-3/4 mx-auto">
-                          <div>
-                            <div>
-                              <span class="text-xs font-semibold leading-tight">40%</span>
-                            </div>
-                          </div>
-                          <div class="text-xs h-0.75 w-30 m-0 flex overflow-visible rounded-lg bg-gray-200">
-                            <div
-                              class="duration-600 ease-soft bg-gradient-to-tl from-blue-600 to-cyan-400 -mt-0.38 -ml-px flex h-1.5 w-2/5 flex-col justify-center overflow-hidden whitespace-nowrap rounded bg-fuchsia-500 text-center text-white transition-all"
-                              role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="40"></div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- card 2 -->
-
-        <div class="w-full max-w-full px-3 md:w-1/2 md:flex-none lg:w-1/3 lg:flex-none">
-          <div
-            class="border-black/12.5 shadow-soft-xl relative flex h-full min-w-0 flex-col break-words rounded-2xl border-0 border-solid bg-white bg-clip-border">
-            <div class="border-black/12.5 mb-0 rounded-t-2xl border-b-0 border-solid bg-white p-6 pb-0">
-              <h6>Orders overview</h6>
-              <p class="text-sm leading-normal">
-                <i class="fa fa-arrow-up text-lime-500"></i>
-                <span class="font-semibold">24%</span> this month
-              </p>
-            </div>
-            <div class="flex-auto p-4">
-              <div
-                class="before:border-r-solid relative before:absolute before:top-0 before:left-4 before:h-full before:border-r-2 before:border-r-slate-100 before:content-[''] before:lg:-ml-px">
-                <div class="relative mb-4 mt-0 after:clear-both after:table after:content-['']">
-                  <span
-                    class="w-6.5 h-6.5 text-base absolute left-4 z-10 inline-flex -translate-x-1/2 items-center justify-center rounded-full bg-white text-center font-semibold">
-                    <i
-                      class="relative z-10 leading-none text-transparent ni ni-bell-55 leading-pro bg-gradient-to-tl from-green-600 to-lime-400 bg-clip-text fill-transparent"></i>
-                  </span>
-                  <div class="ml-11.252 pt-1.4 lg:max-w-120 relative -top-1.5 w-auto">
-                    <h6 class="mb-0 text-sm font-semibold leading-normal text-slate-700">$2400, Design changes</h6>
-                    <p class="mt-1 mb-0 text-xs font-semibold leading-tight text-slate-400">22 DEC 7:20 PM</p>
-                  </div>
-                </div>
-                <div class="relative mb-4 after:clear-both after:table after:content-['']">
-                  <span
-                    class="w-6.5 h-6.5 text-base absolute left-4 z-10 inline-flex -translate-x-1/2 items-center justify-center rounded-full bg-white text-center font-semibold">
-                    <i
-                      class="relative z-10 leading-none text-transparent ni ni-html5 leading-pro bg-gradient-to-tl from-red-600 to-rose-400 bg-clip-text fill-transparent"></i>
-                  </span>
-                  <div class="ml-11.252 pt-1.4 lg:max-w-120 relative -top-1.5 w-auto">
-                    <h6 class="mb-0 text-sm font-semibold leading-normal text-slate-700">New order #1832412</h6>
-                    <p class="mt-1 mb-0 text-xs font-semibold leading-tight text-slate-400">21 DEC 11 PM</p>
-                  </div>
-                </div>
-                <div class="relative mb-4 after:clear-both after:table after:content-['']">
-                  <span
-                    class="w-6.5 h-6.5 text-base absolute left-4 z-10 inline-flex -translate-x-1/2 items-center justify-center rounded-full bg-white text-center font-semibold">
-                    <i
-                      class="relative z-10 leading-none text-transparent ni ni-cart leading-pro bg-gradient-to-tl from-blue-600 to-cyan-400 bg-clip-text fill-transparent"></i>
-                  </span>
-                  <div class="ml-11.252 pt-1.4 lg:max-w-120 relative -top-1.5 w-auto">
-                    <h6 class="mb-0 text-sm font-semibold leading-normal text-slate-700">Server payments for April</h6>
-                    <p class="mt-1 mb-0 text-xs font-semibold leading-tight text-slate-400">21 DEC 9:34 PM</p>
-                  </div>
-                </div>
-                <div class="relative mb-4 after:clear-both after:table after:content-['']">
-                  <span
-                    class="w-6.5 h-6.5 text-base absolute left-4 z-10 inline-flex -translate-x-1/2 items-center justify-center rounded-full bg-white text-center font-semibold">
-                    <i
-                      class="relative z-10 leading-none text-transparent ni ni-credit-card leading-pro bg-gradient-to-tl from-red-500 to-yellow-400 bg-clip-text fill-transparent"></i>
-                  </span>
-                  <div class="ml-11.252 pt-1.4 lg:max-w-120 relative -top-1.5 w-auto">
-                    <h6 class="mb-0 text-sm font-semibold leading-normal text-slate-700">New card added for order
-                      #4395133</h6>
-                    <p class="mt-1 mb-0 text-xs font-semibold leading-tight text-slate-400">20 DEC 2:20 AM</p>
-                  </div>
-                </div>
-                <div class="relative mb-4 after:clear-both after:table after:content-['']">
-                  <span
-                    class="w-6.5 h-6.5 text-base absolute left-4 z-10 inline-flex -translate-x-1/2 items-center justify-center rounded-full bg-white text-center font-semibold">
-                    <i
-                      class="relative z-10 leading-none text-transparent ni ni-key-25 leading-pro bg-gradient-to-tl from-purple-700 to-pink-500 bg-clip-text fill-transparent"></i>
-                  </span>
-                  <div class="ml-11.252 pt-1.4 lg:max-w-120 relative -top-1.5 w-auto">
-                    <h6 class="mb-0 text-sm font-semibold leading-normal text-slate-700">Unlock packages for development
-                    </h6>
-                    <p class="mt-1 mb-0 text-xs font-semibold leading-tight text-slate-400">18 DEC 4:54 AM</p>
-                  </div>
-                </div>
-                <div class="relative mb-0 after:clear-both after:table after:content-['']">
-                  <span
-                    class="w-6.5 h-6.5 text-base absolute left-4 z-10 inline-flex -translate-x-1/2 items-center justify-center rounded-full bg-white text-center font-semibold">
-                    <i
-                      class="relative z-10 leading-none text-transparent ni ni-money-coins leading-pro bg-gradient-to-tl from-gray-900 to-slate-800 bg-clip-text fill-transparent"></i>
-                  </span>
-                  <div class="ml-11.252 pt-1.4 lg:max-w-120 relative -top-1.5 w-auto">
-                    <h6 class="mb-0 text-sm font-semibold leading-normal text-slate-700">New order #9583120</h6>
-                    <p class="mt-1 mb-0 text-xs font-semibold leading-tight text-slate-400">17 DEC</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <footer class="pt-4">
-        <div class="w-full px-6 mx-auto">
-          <div class="flex flex-wrap items-center -mx-3 lg:justify-between">
-            <div class="w-full max-w-full px-3 mt-0 mb-6 shrink-0 lg:mb-0 lg:w-1/2 lg:flex-none">
-              <div class="text-sm leading-normal text-center text-slate-500 lg:text-left">
-                ©
-                <script>
-                  document.write(new Date().getFullYear() + ",");
-                </script>
-                made with <i class="fa fa-heart"></i> by
-                <a href="https://www.creative-tim.com" class="font-semibold text-slate-700" target="_blank">Creative
-                  Tim</a>
-                for a better web.
-              </div>
-            </div>
-            <div class="w-full max-w-full px-3 mt-0 shrink-0 lg:w-1/2 lg:flex-none">
-              <ul class="flex flex-wrap justify-center pl-0 mb-0 list-none lg:justify-end">
-                <li class="nav-item">
-                  <a href="https://www.creative-tim.com"
-                    class="block px-4 pt-0 pb-1 text-sm font-normal transition-colors ease-soft-in-out text-slate-500"
-                    target="_blank">Creative Tim</a>
-                </li>
-                <li class="nav-item">
-                  <a href="https://www.creative-tim.com/presentation"
-                    class="block px-4 pt-0 pb-1 text-sm font-normal transition-colors ease-soft-in-out text-slate-500"
-                    target="_blank">About Us</a>
-                </li>
-                <li class="nav-item">
-                  <a href="https://creative-tim.com/blog"
-                    class="block px-4 pt-0 pb-1 text-sm font-normal transition-colors ease-soft-in-out text-slate-500"
-                    target="_blank">Blog</a>
-                </li>
-                <li class="nav-item">
-                  <a href="https://www.creative-tim.com/license"
-                    class="block px-4 pt-0 pb-1 pr-0 text-sm font-normal transition-colors ease-soft-in-out text-slate-500"
-                    target="_blank">License</a>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
-    <!-- end cards -->
-  </main>
-  <div fixed-plugin>
-
-    <!-- -right-90 in loc de 0-->
-    <div fixed-plugin-card
-      class="z-sticky shadow-soft-3xl w-90 ease-soft -right-90 fixed top-0 left-auto flex h-full min-w-0 flex-col break-words rounded-none border-0 bg-white bg-clip-border px-2.5 duration-200">
-      <div class="px-6 pt-4 pb-0 mb-0 bg-white border-b-0 rounded-t-2xl">
-        <div class="float-left">
-          <h5 class="mt-4 mb-0">Soft UI Configurator</h5>
-          <p>See our dashboard options.</p>
-        </div>
-        <div class="float-right mt-6">
-          <button fixed-plugin-close-button
-            class="inline-block p-0 mb-4 text-xs font-bold text-center uppercase align-middle transition-all bg-transparent border-0 rounded-lg shadow-none cursor-pointer hover:scale-102 leading-pro ease-soft-in tracking-tight-soft bg-150 bg-x-25 active:opacity-85 text-slate-700">
-            <i class="fa fa-close"></i>
-          </button>
-        </div>
-        <!-- End Toggle Button -->
-      </div>
-      <hr class="h-px mx-0 my-1 bg-transparent bg-gradient-to-r from-transparent via-black/40 to-transparent" />
-      <div class="flex-auto p-6 pt-0 sm:pt-4">
-        <!-- Sidebar Backgrounds -->
-        <div>
-          <h6 class="mb-0">Sidebar Colors</h6>
-        </div>
-        <a href="javascript:void(0)">
-          <div class="my-2 text-left" sidenav-colors>
-            <span
-              class="text-xs rounded-circle h-5.75 mr-1.25 w-5.75 ease-soft-in-out bg-gradient-to-tl from-purple-700 to-pink-500 relative inline-block cursor-pointer whitespace-nowrap border border-solid border-slate-700 text-center align-baseline font-bold uppercase leading-none text-white transition-all duration-200 hover:border-slate-700"
-              active-color data-color-from="purple-700" data-color-to="pink-500" onclick="sidebarColor(this)"></span>
-            <span
-              class="text-xs rounded-circle h-5.75 mr-1.25 w-5.75 ease-soft-in-out bg-gradient-to-tl from-gray-900 to-slate-800 relative inline-block cursor-pointer whitespace-nowrap border border-solid border-white text-center align-baseline font-bold uppercase leading-none text-white transition-all duration-200 hover:border-slate-700"
-              data-color-from="gray-900" data-color-to="slate-800" onclick="sidebarColor(this)"></span>
-            <span
-              class="text-xs rounded-circle h-5.75 mr-1.25 w-5.75 ease-soft-in-out bg-gradient-to-tl from-blue-600 to-cyan-400 relative inline-block cursor-pointer whitespace-nowrap border border-solid border-white text-center align-baseline font-bold uppercase leading-none text-white transition-all duration-200 hover:border-slate-700"
-              data-color-from="blue-600" data-color-to="cyan-400" onclick="sidebarColor(this)"></span>
-            <span
-              class="text-xs rounded-circle h-5.75 mr-1.25 w-5.75 ease-soft-in-out bg-gradient-to-tl from-green-600 to-lime-400 relative inline-block cursor-pointer whitespace-nowrap border border-solid border-white text-center align-baseline font-bold uppercase leading-none text-white transition-all duration-200 hover:border-slate-700"
-              data-color-from="green-600" data-color-to="lime-400" onclick="sidebarColor(this)"></span>
-            <span
-              class="text-xs rounded-circle h-5.75 mr-1.25 w-5.75 ease-soft-in-out bg-gradient-to-tl from-red-500 to-yellow-400 relative inline-block cursor-pointer whitespace-nowrap border border-solid border-white text-center align-baseline font-bold uppercase leading-none text-white transition-all duration-200 hover:border-slate-700"
-              data-color-from="red-500" data-color-to="yellow-400" onclick="sidebarColor(this)"></span>
-            <span
-              class="text-xs rounded-circle h-5.75 mr-1.25 w-5.75 ease-soft-in-out bg-gradient-to-tl from-red-600 to-rose-400 relative inline-block cursor-pointer whitespace-nowrap border border-solid border-white text-center align-baseline font-bold uppercase leading-none text-white transition-all duration-200 hover:border-slate-700"
-              data-color-from="red-600" data-color-to="rose-400" onclick="sidebarColor(this)"></span>
-          </div>
-        </a>
-        <!-- Sidenav Type -->
-        <div class="mt-4">
-          <h6 class="mb-0">Sidenav Type</h6>
-          <p class="text-sm leading-normal">Choose between 2 different sidenav types.</p>
-        </div>
-        <div class="flex">
-          <button transparent-style-btn
-            class="inline-block w-full px-4 py-3 mb-2 text-xs font-bold text-center text-white uppercase align-middle transition-all border border-transparent border-solid rounded-lg cursor-pointer xl-max:cursor-not-allowed xl-max:opacity-65 xl-max:pointer-events-none xl-max:bg-gradient-to-tl xl-max:from-purple-700 xl-max:to-pink-500 xl-max:text-white xl-max:border-0 hover:scale-102 hover:shadow-soft-xs active:opacity-85 leading-pro ease-soft-in tracking-tight-soft shadow-soft-md bg-150 bg-x-25 bg-gradient-to-tl from-purple-700 to-pink-500 bg-fuchsia-500 hover:border-fuchsia-500"
-            data-class="bg-transparent" active-style>Transparent</button>
-          <button white-style-btn
-            class="inline-block w-full px-4 py-3 mb-2 ml-2 text-xs font-bold text-center uppercase align-middle transition-all bg-transparent border border-solid rounded-lg cursor-pointer xl-max:cursor-not-allowed xl-max:opacity-65 xl-max:pointer-events-none xl-max:bg-gradient-to-tl xl-max:from-purple-700 xl-max:to-pink-500 xl-max:text-white xl-max:border-0 hover:scale-102 hover:shadow-soft-xs active:opacity-85 leading-pro ease-soft-in tracking-tight-soft shadow-soft-md bg-150 bg-x-25 border-fuchsia-500 bg-none text-fuchsia-500 hover:border-fuchsia-500"
-            data-class="bg-white">White</button>
-        </div>
-        <p class="block mt-2 text-sm leading-normal xl:hidden">You can change the sidenav type just on desktop view.</p>
-        <!-- Navbar Fixed -->
-        <div class="mt-4">
-          <h6 class="mb-0">Navbar Fixed</h6>
-        </div>
-        <div class="min-h-6 mb-0.5 block pl-0">
-          <input navbarFixed
-            class="rounded-10 duration-250 ease-soft-in-out after:rounded-circle after:shadow-soft-2xl after:duration-250 checked:after:translate-x-5.25 h-5 relative float-left mt-1 ml-auto w-10 cursor-pointer appearance-none border border-solid border-gray-200 bg-slate-800/10 bg-none bg-contain bg-left bg-no-repeat align-top transition-all after:absolute after:top-px after:h-4 after:w-4 after:translate-x-px after:bg-white after:content-[''] checked:border-slate-800/95 checked:bg-slate-800/95 checked:bg-none checked:bg-right"
-            type="checkbox" />
-        </div>
-        <hr class="h-px bg-transparent bg-gradient-to-r from-transparent via-black/40 to-transparent sm:my-6" />
-        <a class="inline-block w-full px-6 py-3 mb-4 text-xs font-bold text-center text-white uppercase align-middle transition-all bg-transparent border-0 rounded-lg cursor-pointer leading-pro ease-soft-in hover:shadow-soft-xs hover:scale-102 active:opacity-85 tracking-tight-soft shadow-soft-md bg-150 bg-x-25 bg-gradient-to-tl from-gray-900 to-slate-800"
-          href="https://www.creative-tim.com/product/soft-ui-dashboard-tailwind" target="_blank">Free Download</a>
-        <a class="inline-block w-full px-6 py-3 mb-4 text-xs font-bold text-center uppercase align-middle transition-all bg-transparent border border-solid rounded-lg shadow-none cursor-pointer active:shadow-soft-xs hover:scale-102 active:opacity-85 leading-pro ease-soft-in tracking-tight-soft bg-150 bg-x-25 border-slate-700 text-slate-700 hover:bg-transparent hover:text-slate-700 hover:shadow-none active:bg-slate-700 active:text-white active:hover:bg-transparent active:hover:text-slate-700 active:hover:shadow-none"
-          href="https://www.creative-tim.com/learning-lab/tailwind/html/quick-start/soft-ui-dashboard/"
-          target="_blank">View documentation</a>
-        <div class="w-full text-center">
-          <a class="github-button" href="https://github.com/creativetimofficial/soft-ui-dashboard-tailwind"
-            data-icon="octicon-star" data-size="large" data-show-count="true"
-            aria-label="Star creativetimofficial/soft-ui-dashboard on GitHub">Star</a>
-          <h6 class="mt-4">Thank you for sharing!</h6>
-          <a href="https://twitter.com/intent/tweet?text=Check%20Soft%20UI%20Dashboard%20Tailwind%20made%20by%20%40CreativeTim&hashtags=webdesign,dashboard,tailwindcss&amp;url=https%3A%2F%2Fwww.creative-tim.com%2Fproduct%2Fsoft-ui-dashboard-tailwind"
-            class="inline-block px-6 py-3 mb-0 mr-2 text-xs font-bold text-center text-white uppercase align-middle transition-all border-0 rounded-lg cursor-pointer hover:shadow-soft-xs hover:scale-102 active:opacity-85 leading-pro ease-soft-in tracking-tight-soft shadow-soft-md bg-150 bg-x-25 me-2 border-slate-700 bg-slate-700"
-            target="_blank"> <i class="mr-1 fab fa-twitter"></i> Tweet </a>
-          <a href="https://www.facebook.com/sharer/sharer.php?u=https://www.creative-tim.com/product/soft-ui-dashboard-tailwind"
-            class="inline-block px-6 py-3 mb-0 mr-2 text-xs font-bold text-center text-white uppercase align-middle transition-all border-0 rounded-lg cursor-pointer hover:shadow-soft-xs hover:scale-102 active:opacity-85 leading-pro ease-soft-in tracking-tight-soft shadow-soft-md bg-150 bg-x-25 me-2 border-slate-700 bg-slate-700"
-            target="_blank"> <i class="mr-1 fab fa-facebook-square"></i> Share </a>
-        </div>
-      </div>
-    </div>
+<body
+  x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false, 'periodDropdownOpen': false, 'activeChart': 'lamaran-vs-lowongan' }"
+  x-init="
+         darkMode = JSON.parse(localStorage.getItem('darkMode'));
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+  :class="{'dark bg-gray-900': darkMode === true}">
+  <!-- ===== Preloader Start ===== -->
+  <div x-show="loaded"
+    x-init="window.addEventListener('DOMContentLoaded', () => {setTimeout(() => loaded = false, 500)})"
+    class="fixed left-0 top-0 z-999999 flex h-screen w-screen items-center justify-center bg-white dark:bg-black">
+    <div class="h-16 w-16 animate-spin rounded-full border-4 border-solid border-brand-500 border-t-transparent"></div>
   </div>
+
+  <!-- ===== Preloader End ===== -->
+
+  <!-- ===== Page Wrapper Start ===== -->
+  <div class="flex h-screen overflow-hidden">
+    <!-- ===== Sidebar Start ===== -->
+
+    <?php include 'sidebar.php'; ?>
+
+    <!-- ===== Sidebar End ===== -->
+
+    <!-- ===== Content Area Start ===== -->
+    <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+      <!-- Small Device Overlay Start -->
+      <div @click="sidebarToggle = false" :class="sidebarToggle ? 'block lg:hidden' : 'hidden'"
+        class="fixed w-full h-screen z-9 bg-gray-900/50"></div>
+      <!-- Small Device Overlay End -->
+
+      <!-- ===== Header Start ===== -->
+      <?php include 'header.php'; ?>
+      <!-- ===== Header End ===== -->
+
+      <!-- ===== Main Content Start ===== -->
+      <main>
+        <div class="main-container p-4 mx-auto max-w-screen-2xl md:p-4">
+          <div class="grid grid-cols-12 gap-3 md:gap-4">
+            <div class="col-span-12 space-y-6">
+              <!-- Metric Group One -->
+              <div class="compact-grid grid grid-cols-1 gap-3 md:gap-3">
+                <!-- Card Total Perusahaan Terdaftar Start-->
+                <div
+                  class="compact-card rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                  <div class="icon-container flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      class="lucide lucide-building-icon lucide-building">
+                      <path d="M12 10h.01" />
+                      <path d="M12 14h.01" />
+                      <path d="M12 6h.01" />
+                      <path d="M16 10h.01" />
+                      <path d="M16 14h.01" />
+                      <path d="M16 6h.01" />
+                      <path d="M8 10h.01" />
+                      <path d="M8 14h.01" />
+                      <path d="M8 6h.01" />
+                      <path d="M9 22v-3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+                      <rect x="4" y="2" width="16" height="20" rx="2" />
+                    </svg>
+                  </div>
+
+                  <div class="flex items-end justify-between">
+                    <div>
+                      <span class="stat-label text-gray-500 dark:text-gray-400">Total Perusahaan Terdaftar</span>
+                      <h4 class="stat-value font-bold text-gray-800 dark:text-white/90">
+                        <?php echo number_format($total_perusahaan, 0, ',', '.'); ?>
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+                <!-- Card Total Perusahaan Terdaftar End -->
+
+                <!-- Card Total Semua Pelamar Start -->
+                <div
+                  class="compact-card rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                  <div class="icon-container flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      class="lucide lucide-user-round-plus-icon lucide-user-round-plus">
+                      <path d="M2 21a8 8 0 0 1 13.292-6" />
+                      <circle cx="10" cy="8" r="5" />
+                      <path d="M19 16v6" />
+                      <path d="M22 19h-6" />
+                    </svg>
+                  </div>
+
+                  <div class="flex items-end justify-between">
+                    <div>
+                      <span class="stat-label text-gray-500 dark:text-gray-400">Total Pelamar Saat Ini</span>
+                      <h4 class="stat-value font-bold text-gray-800 dark:text-white/90">
+                        <?php echo number_format($total_pelamar_baru, 0, ',', '.'); ?>
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+                <!-- Card Total Semua Pelamar End -->
+
+                <!-- Card Total Lowongan Aktif Start -->
+                <div
+                  class="compact-card rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                  <div class="icon-container flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      class="lucide lucide-mail-search-icon lucide-mail-search">
+                      <path d="M22 12.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h7.5" />
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                      <path d="M18 21a3 3 0 1 0 0-6 3 3 0 1 0 0 6Z" />
+                      <circle cx="18" cy="18" r="3" />
+                      <path d="m22 22-1.5-1.5" />
+                    </svg>
+                  </div>
+
+                  <div class="flex items-end justify-between">
+                    <div>
+                      <span class="stat-label text-gray-500 dark:text-gray-400">Total Lowongan Aktif</span>
+                      <h4 class="stat-value font-bold text-gray-800 dark:text-white/90">
+                        <?php echo number_format($total_lowongan_aktif, 0, ',', '.'); ?>
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+                <!-- Card Total Lowongan Aktif End -->
+
+                <!-- Card Total Lamaran Masuk Start -->
+                <div
+                  class="compact-card rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                  <div class="icon-container flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      class="lucide lucide-file-user-icon lucide-file-user">
+                      <path
+                        d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
+                      <path d="M14 2v5a1 1 0 0 0 1 1h5" />
+                      <path d="M16 22a4 4 0 0 0-8 0" />
+                      <circle cx="12" cy="15" r="3" />
+                    </svg>
+                  </div>
+
+                  <div class="flex items-end justify-between">
+                    <div>
+                      <span class="stat-label text-gray-500 dark:text-gray-400">Total Lamaran Masuk</span>
+                      <h4 class="stat-value font-bold text-gray-800 dark:text-white/90">
+                        <?php echo number_format($total_lamaran, 0, ',', '.'); ?>
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+                <!-- Card Total Lamaran Masuk End -->
+              </div>
+              <!-- Metric Group One -->
+
+              <!-- ====== Chart Lamaran Masuk Start -->
+              <div
+                class="w-full bg-white border border-gray-200 rounded-lg shadow-xs p-5 md:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+                <div class="flex justify-between pb-5 mb-5 border-b border-gray-200 dark:border-gray-800">
+                  <div class="flex items-center">
+                    <div
+                      class="chart-header-icon bg-gray-100 border border-gray-200 flex items-center justify-center rounded-full dark:bg-gray-800 dark:border-gray-700">
+                      <svg class="w-6 h-6 text-gray-700 dark:text-gray-400" aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-width="2"
+                          d="M4.5 17H4a1 1 0 0 1-1-1 3 3 0 0 1 3-3h1m0-3.05A2.5 2.5 0 1 1 9 5.5M19.5 17h.5a1 1 0 0 0 1-1 3 3 0 0 0-3-3h-1m0-3.05a2.5 2.5 0 1 0-2-4.45m.5 13.5h-7a1 1 0 0 1-1-1 3 3 0 0 1 3-3h3a3 3 0 0 1 3 3 1 1 0 0 1-1 1Zm-1-9.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z" />
+                      </svg>
+                    </div>
+                    <div class="chart-header-content">
+                      <h5 class="text-2xl font-semibold text-gray-800 dark:text-white/90" id="total-lamaran-periode">
+                        <?php echo number_format($total_period_ini, 0, ',', '.'); ?>
+                      </h5>
+                      <p class="text-sm text-gray-500 dark:text-gray-400" id="chart-title">
+                        <?php
+                        if ($period == '7days') {
+                          echo 'Lamaran masuk per minggu';
+                        } elseif ($period == '6month') {
+                          echo 'Lamaran masuk 6 bulan terakhir';
+                        } else {
+                          echo 'Lamaran masuk 1 tahun terakhir';
+                        }
+                        ?>
+                      </p>
+                    </div>
+                  </div>
+                  <div class="flex items-center">
+                    <!-- Persentase dihapus -->
+                  </div>
+                </div>
+
+                <div class="stats-grid mb-6">
+                  <dl>
+                    <dt>Diproses</dt>
+                    <dd id="total-diproses">
+                      <?php echo number_format($total_diproses, 0, ',', '.'); ?>
+                    </dd>
+                  </dl>
+                  <dl>
+                    <dt>Diterima</dt>
+                    <dd id="total-diterima">
+                      <?php echo number_format($total_diterima, 0, ',', '.'); ?>
+                    </dd>
+                  </dl>
+                  <dl>
+                    <dt>Ditolak</dt>
+                    <dd id="total-ditolak">
+                      <?php echo number_format($total_ditolak, 0, ',', '.'); ?>
+                    </dd>
+                  </dl>
+                </div>
+
+                <div id="lamaran-chart" class="chart-container"></div>
+
+                <div
+                  class="grid grid-cols-1 items-center border-gray-200 dark:border-gray-800 border-t justify-between mt-5">
+                  <div class="flex justify-between items-center pt-5 md:pt-6">
+                    <!-- Button -->
+                    <div class="dropdown-container">
+                      <button id="periodDropdownButton"
+                        class="text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white text-center inline-flex items-center bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors"
+                        type="button">
+                        <?php echo $period_text; ?>
+                        <svg class="w-4 h-4 ms-1.5 transition-transform duration-200" id="dropdownArrow"
+                          aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
+                          viewBox="0 0 24 24">
+                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="m19 9-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      <!-- Dropdown menu -->
+                      <div id="periodDropdownMenu"
+                        class="dropdown-menu bg-white border border-gray-200 rounded-lg shadow-lg w-44 dark:bg-gray-800 dark:border-gray-700">
+                        <ul class="p-2 text-sm text-gray-500 dark:text-gray-400 font-medium">
+                          <li>
+                            <a href="?period=7days"
+                              class="period-option inline-flex items-center w-full p-2 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-white rounded <?php echo $current_period == '7days' ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white' : ''; ?>">Last
+                              7 days</a>
+                          </li>
+                          <li>
+                            <a href="?period=6month"
+                              class="period-option inline-flex items-center w-full p-2 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-white rounded <?php echo $current_period == '6month' ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white' : ''; ?>">Last
+                              6 month</a>
+                          </li>
+                          <li>
+                            <a href="?period=1year"
+                              class="period-option inline-flex items-center w-full p-2 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-white rounded <?php echo $current_period == '1year' ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white' : ''; ?>">Last
+                              1 year</a>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <a href="datalamaran.php"
+                      class="inline-flex items-center text-blue-600 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 font-medium leading-5 rounded-lg text-sm px-4 py-2 transition-colors">
+                      Lihat Detail
+                      <svg class="w-4 h-4 ms-2 -me-0.5 rtl:rotate-180" aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M19 12H5m14 0-4 4m4-4-4-4" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <!-- ====== Chart Lamaran Masuk End -->
+            </div>
+
+            <div class="col-span-12">
+              <!-- ====== Statistics Chart Start ====== -->
+              <div
+                class="statistics-chart-wrapper rounded-xl border border-gray-200 bg-white px-4 pt-4 pb-4 sm:px-5 sm:pt-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                <div class="mb-4 flex flex-col gap-4 sm:flex-row sm:justify-between">
+                  <div class="w-full">
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">
+                      Statistics
+                    </h3>
+                    <p class="text-sm mt-1 text-gray-500 dark:text-gray-400">
+                      Analisis pasar tenaga kerja berdasarkan berbagai metrik
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Tabs untuk statistics -->
+                <div class="statistics-tabs mb-4">
+                  <button @click="activeChart = 'lamaran-vs-lowongan'; initializeStatisticsChart();"
+                    :class="activeChart === 'lamaran-vs-lowongan' ? 'active' : ''" class="statistics-tab">
+                    Lamaran vs Lowongan
+                  </button>
+                  <button @click="activeChart = 'pelamar-vs-lowongan'; initializeStatisticsChart();"
+                    :class="activeChart === 'pelamar-vs-lowongan' ? 'active' : ''" class="statistics-tab">
+                    Pelamar vs Lowongan
+                  </button>
+                  <button @click="activeChart = 'lowongan-per-kategori'; initializeStatisticsChart();"
+                    :class="activeChart === 'lowongan-per-kategori' ? 'active' : ''" class="statistics-tab">
+                    Lowongan per Kategori
+                  </button>
+                </div>
+
+                <!-- Chart container -->
+                <div class="chart-three-container">
+                  <div id="chartThree" style="width: 100%; position: relative;"></div>
+                </div>
+              </div>
+              <!-- ====== Statistics Chart End ====== -->
+            </div>
+
+          </div>
+        </div>
+      </main>
+      <!-- ===== Main Content End ===== -->
+    </div>
+    <!-- ===== Content Area End ===== -->
+  </div>
+  <!-- ===== Page Wrapper End ===== -->
+
+  <!-- ApexCharts Library -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.39.0/dist/apexcharts.min.js"></script>
+
+  <script defer src="bundle.js"></script>
+  <script>
+    // Data dari PHP untuk chart utama
+    const chartData = <?php echo $chart_data_json; ?>;
+    const chartLabels = <?php echo $chart_labels_json; ?>;
+    const currentPeriod = '<?php echo $current_period; ?>';
+
+    // Data untuk statistics chart
+    const kategoriLabels = <?php echo $kategori_labels_json; ?>;
+    const kategoriValues = <?php echo $kategori_values_json; ?>;
+
+    // Data weekly untuk statistics chart
+    const lamaranVsLowonganData = <?php echo $lamaran_vs_lowongan_json; ?>;
+    const pelamarVsLowonganData = <?php echo $pelamar_vs_lowongan_json; ?>;
+
+    // Format angka dengan separator
+    function formatNumber(num) {
+      return new Intl.NumberFormat('id-ID').format(num);
+    }
+
+    // Fungsi untuk mendapatkan warna dari CSS variable
+    function getColor(variableName, fallback) {
+      const computedStyle = getComputedStyle(document.documentElement);
+      return computedStyle.getPropertyValue(variableName).trim() || fallback;
+    }
+
+    // Warna untuk chart utama
+    const colors = {
+      diproses: getColor('--color-fg-brand', '#7592ff'),
+      diterima: getColor('--color-fg-success', '#c2d6ff'),
+      ditolak: getColor('--color-fg-error', '#2031d8'),
+      // Warna untuk statistics chart
+      lamaran: getColor('--color-fg-primary', '#465fff'),
+      lowongan: getColor('--color-fg-secondary', '#9cb9ff'),
+      pelamar: getColor('--color-fg-info', '#465fff')
+    };
+
+    // Siapkan data untuk chart utama
+    const categories = chartLabels;
+    const seriesData = [
+      {
+        name: 'Diproses',
+        data: categories.map(label => chartData[label]?.diproses || 0),
+        color: colors.diproses
+      },
+      {
+        name: 'Diterima',
+        data: categories.map(label => chartData[label]?.diterima || 0),
+        color: colors.diterima
+      },
+      {
+        name: 'Ditolak',
+        data: categories.map(label => chartData[label]?.ditolak || 0),
+        color: colors.ditolak
+      }
+    ];
+
+    // Tentukan lebar bar berdasarkan jumlah data
+    let columnWidth = '45%'; // Default
+
+    if (currentPeriod === '7days') {
+      // Untuk 7 hari: lebih lebar karena hanya 7 data
+      columnWidth = '45%';
+    } else if (currentPeriod === '6month') {
+      // Untuk 6 bulan: lebih sempit karena ada 6 data
+      columnWidth = '35%';
+    } else if (currentPeriod === '1year') {
+      // Untuk 1 tahun: paling sempit karena ada 12 data
+      columnWidth = '25%';
+    }
+
+    // Selalu gunakan bar chart untuk semua period
+    const chartOptions = {
+      series: seriesData,
+      chart: {
+        type: 'bar',
+        height: 320,
+        stacked: true,
+        toolbar: { show: false },
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        foreColor: '#6b7280'
+      },
+      plotOptions: {
+        bar: {
+          horizontal: false,
+          columnWidth: columnWidth,
+          borderRadius: 6,
+          borderRadiusApplication: 'end',
+          dataLabels: {
+            position: 'top'
+          }
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        show: true,
+        width: 1,
+        colors: ['transparent']
+      },
+      xaxis: {
+        categories: categories,
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+        labels: {
+          style: {
+            fontSize: currentPeriod === '7days' ? '12px' : '11px',
+            fontWeight: 400,
+            colors: '#6b7280',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+          },
+          trim: true,
+          maxHeight: 120
+        }
+      },
+      yaxis: {
+        title: { text: '' },
+        labels: {
+          formatter: function (val) {
+            return formatNumber(val);
+          },
+          style: {
+            fontSize: '12px',
+            colors: '#6b7280',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+          }
+        }
+      },
+      fill: {
+        opacity: 1
+      },
+      legend: {
+        show: true,
+        position: 'top',
+        horizontalAlign: 'left',
+        fontSize: '12px',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        fontWeight: 400,
+        markers: {
+          radius: 12,
+          width: 12,
+          height: 12
+        },
+        itemMargin: {
+          horizontal: 10
+        },
+        labels: {
+          colors: '#6b7280',
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+        }
+      },
+      grid: {
+        borderColor: '#e5e7eb',
+        strokeDashArray: 4,
+        padding: {
+          top: 10,
+          right: 0,
+          bottom: 0,
+          left: 0
+        }
+      },
+      tooltip: {
+        y: {
+          formatter: function (val) {
+            return formatNumber(val) + ' lamaran';
+          }
+        },
+        shared: true,
+        intersect: false
+      }
+    };
+
+    // Fungsi untuk inisialisasi statistics chart
+    function initializeStatisticsChart() {
+      const activeChart = Alpine.$data(document.body).activeChart;
+      let chartOptions;
+
+      switch (activeChart) {
+        case 'lamaran-vs-lowongan':
+          // Siapkan data untuk chart Lamaran vs Lowongan per minggu
+          const weeklyLabels = lamaranVsLowonganData.map(item => item.minggu);
+          const lamaranData = lamaranVsLowonganData.map(item => item.lamaran);
+          const lowonganData = lamaranVsLowonganData.map(item => item.lowongan);
+
+          chartOptions = {
+            series: [{
+              name: 'Lamaran (Demand)',
+              data: lamaranData
+            }, {
+              name: 'Lowongan (Supply)',
+              data: lowonganData
+            }],
+            chart: {
+              type: 'bar',
+              height: 350,
+              toolbar: { show: false },
+              width: '100%'
+            },
+            plotOptions: {
+              bar: {
+                horizontal: false,
+                columnWidth: '45%',
+                borderRadius: 6,
+                borderRadiusApplication: 'end'
+              }
+            },
+            dataLabels: {
+              enabled: false
+            },
+            stroke: {
+              show: true,
+              width: 1,
+              colors: ['transparent']
+            },
+            xaxis: {
+              categories: weeklyLabels,
+              labels: {
+                style: {
+                  fontSize: '12px',
+                  fontFamily: 'Inter, sans-serif'
+                }
+              }
+            },
+            yaxis: {
+              title: {
+                text: 'Jumlah'
+              },
+              labels: {
+                formatter: function (val) {
+                  return formatNumber(val);
+                }
+              }
+            },
+            fill: {
+              opacity: 1
+            },
+            colors: [colors.lamaran, colors.lowongan],
+            tooltip: {
+              y: {
+                formatter: function (val) {
+                  return formatNumber(val);
+                }
+              },
+              shared: true,
+              intersect: false
+            },
+            legend: {
+              position: 'top',
+              horizontalAlign: 'left',
+              fontSize: '12px',
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 400
+            }
+          };
+          break;
+
+        case 'pelamar-vs-lowongan':
+          // Siapkan data untuk chart Pelamar vs Lowongan per minggu
+          const pelamarWeeklyLabels = pelamarVsLowonganData.map(item => item.minggu);
+          const pelamarData = pelamarVsLowonganData.map(item => item.pelamar);
+          const lowonganWeeklyData = pelamarVsLowonganData.map(item => item.lowongan);
+
+          chartOptions = {
+            series: [{
+              name: 'Pelamar Aktif',
+              data: pelamarData
+            }, {
+              name: 'Lowongan Baru',
+              data: lowonganWeeklyData
+            }],
+            chart: {
+              type: 'bar',
+              height: 350,
+              toolbar: { show: false },
+              width: '100%'
+            },
+            plotOptions: {
+              bar: {
+                horizontal: false,
+                columnWidth: '45%',
+                borderRadius: 6,
+                borderRadiusApplication: 'end'
+              }
+            },
+            dataLabels: {
+              enabled: false
+            },
+            stroke: {
+              show: true,
+              width: 1,
+              colors: ['transparent']
+            },
+            xaxis: {
+              categories: pelamarWeeklyLabels,
+              labels: {
+                style: {
+                  fontSize: '12px',
+                  fontFamily: 'Inter, sans-serif'
+                }
+              }
+            },
+            yaxis: {
+              title: {
+                text: 'Jumlah'
+              },
+              labels: {
+                formatter: function (val) {
+                  return formatNumber(val);
+                }
+              }
+            },
+            fill: {
+              opacity: 1
+            },
+            colors: [colors.pelamar, colors.lowongan],
+            tooltip: {
+              y: {
+                formatter: function (val) {
+                  return formatNumber(val);
+                }
+              },
+              shared: true,
+              intersect: false
+            },
+            legend: {
+              position: 'top',
+              horizontalAlign: 'left',
+              fontSize: '12px',
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 400
+            }
+          };
+          break;
+
+        case 'lowongan-per-kategori':
+          // Periksa apakah ada data kategori
+          if (kategoriLabels.length === 0 || kategoriValues.length === 0) {
+            // Jika tidak ada data, tampilkan chart kosong dengan pesan
+            chartOptions = {
+              series: [{
+                name: 'Jumlah Lowongan',
+                data: []
+              }],
+              chart: {
+                type: 'bar',
+                height: 350,
+                toolbar: { show: false },
+                width: '100%'
+              },
+              plotOptions: {
+                bar: {
+                  horizontal: true,
+                  borderRadius: 4,
+                  borderRadiusApplication: 'end',
+                  columnWidth: '25%', // MEMPERKECIL LEBAR BAR
+                }
+              },
+              dataLabels: {
+                enabled: false
+              },
+              xaxis: {
+                categories: ['Belum ada data'],
+                labels: {
+                  style: {
+                    fontSize: '12px',
+                    fontFamily: 'Inter, sans-serif'
+                  },
+                  trim: true,
+                  maxHeight: 100
+                },
+                tickAmount: 5, // MENENTUKAN JUMLAH TICK PADA X-AXIS
+                min: 0,
+                max: 5, // MAKSIMAL 5 TICK
+                labels: {
+                  formatter: function (val) {
+                    // MENGHAPUS ANGKA DESIMAL, HANYA TAMPILKAN ANGKA BULAT
+                    return Math.round(val);
+                  }
+                }
+              },
+              yaxis: {
+                labels: {
+                  style: {
+                    fontSize: '12px',
+                    fontFamily: 'Inter, sans-serif'
+                  }
+                }
+              },
+              colors: ['#3B82F6'], // WARNA BIRU DEFAULT UNTUK BAR PERTAMA
+              tooltip: {
+                y: {
+                  formatter: function (val) {
+                    return formatNumber(val) + ' lowongan';
+                  }
+                }
+              },
+              noData: {
+                text: 'Belum ada lowongan per kategori',
+                align: 'center',
+                verticalAlign: 'middle',
+                offsetX: 0,
+                offsetY: 0,
+                style: {
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  fontFamily: 'Inter, sans-serif'
+                }
+              }
+            };
+          } else {
+            // WARNA UNTUK SETIAP KATEGORI (ARRAY WARNA)
+            const categoryColors = [
+              '#C7D2FE', // Soft Indigo Blue
+              '#A5B4FC', // Light Indigo
+              '#818CF8', // Indigo Medium
+              '#6366F1', // Indigo Strong
+              '#4F46E5', // Deep Indigo
+              '#4338CA', // Dark Indigo
+              '#3730A3', // Navy Indigo
+              '#312E81', // Very Dark Indigo
+            ];
+
+
+            // Tentukan warna berdasarkan jumlah kategori
+            let colorsArray;
+            if (kategoriLabels.length === 1) {
+              colorsArray = [categoryColors[0]];
+            } else {
+              colorsArray = categoryColors.slice(0, kategoriLabels.length);
+            }
+
+            // Tentukan maksimum nilai untuk menentukan rentang x-axis
+            const maxValue = Math.max(...kategoriValues);
+            const maxTick = Math.ceil(maxValue); // Pembulatan ke atas
+
+            // Pastikan minimal ada tick 1, 2, 3, 4, 5
+            const tickValues = [];
+            const tickCount = Math.max(5, maxTick); // Minimal 5 tick, atau lebih jika maxValue > 5
+
+            for (let i = 1; i <= tickCount; i++) {
+              tickValues.push(i);
+            }
+
+            chartOptions = {
+              series: [{
+                name: 'Jumlah Lowongan',
+                data: kategoriValues
+              }],
+              chart: {
+                type: 'bar',
+                height: 350,
+                toolbar: { show: false },
+                width: '100%'
+              },
+              plotOptions: {
+                bar: {
+                  horizontal: true,
+                  borderRadius: 4,
+                  borderRadiusApplication: 'end',
+                  columnWidth: '25%', // MEMPERKECIL LEBAR BAR DARI 60% MENJADI 25%
+                  distributed: true, // MEMBUAT SETIAP BAR WARNA BERBEDA
+                }
+              },
+              dataLabels: {
+                enabled: true,
+                formatter: function (val) {
+                  return formatNumber(val);
+                },
+                style: {
+                  fontSize: '11px',
+                  colors: ['#fff'],
+                  fontWeight: 'bold'
+                },
+                offsetX: 10,
+                textAnchor: 'start'
+              },
+              xaxis: {
+                categories: kategoriLabels,
+                tickAmount: tickCount, // MENENTUKAN JUMLAH TICK
+                min: 0,
+                max: tickCount, // MAKSIMAL SESUAI DENGAN TICKCOUNT
+                labels: {
+                  style: {
+                    fontSize: '12px',
+                    fontFamily: 'Inter, sans-serif'
+                  },
+                  formatter: function (val) {
+                    // MENGHAPUS ANGKA DESIMAL, HANYA TAMPILKAN ANGKA BULAT
+                    return Math.round(val);
+                  }
+                }
+              },
+              yaxis: {
+                labels: {
+                  style: {
+                    fontSize: '12px',
+                    fontFamily: 'Inter, sans-serif'
+                  },
+                  maxWidth: 200,
+                  trim: true
+                }
+              },
+              colors: colorsArray, // MENGGUNAKAN ARRAY WARNA UNTUK SETIAP KATEGORI
+              tooltip: {
+                y: {
+                  formatter: function (val) {
+                    return formatNumber(val) + ' lowongan';
+                  }
+                }
+              },
+              grid: {
+                borderColor: '#e5e7eb',
+                strokeDashArray: 4,
+                xaxis: {
+                  lines: {
+                    show: true
+                  }
+                },
+                yaxis: {
+                  lines: {
+                    show: false
+                  }
+                }
+              }
+            };
+          }
+          break;
+      }
+
+      const chartElement = document.getElementById('chartThree');
+      if (chartElement) {
+        // Destroy existing chart if exists
+        if (window.statisticsChart) {
+          window.statisticsChart.destroy();
+        }
+
+        // Create new chart
+        window.statisticsChart = new ApexCharts(chartElement, chartOptions);
+        window.statisticsChart.render();
+
+        // Force redraw untuk memastikan chart tampil dengan benar
+        setTimeout(() => {
+          if (window.statisticsChart) {
+            window.statisticsChart.updateSeries(chartOptions.series);
+          }
+        }, 100);
+      }
+    }
+
+    // Inisialisasi chart
+    document.addEventListener('DOMContentLoaded', function () {
+      console.log('DOM Loaded, initializing chart...');
+
+      // Inisialisasi chart utama
+      const chartElement = document.getElementById('lamaran-chart');
+      if (chartElement && typeof ApexCharts !== 'undefined') {
+        console.log('ApexCharts is defined, creating main chart...');
+
+        try {
+          const chart = new ApexCharts(chartElement, chartOptions);
+          chart.render();
+
+          // Simpan chart instance untuk akses nanti
+          window.lamaranChart = chart;
+          console.log('Main chart rendered successfully!');
+        } catch (error) {
+          console.error('Error rendering main chart:', error);
+        }
+      } else {
+        console.error('Chart element or ApexCharts not found!');
+      }
+
+      // Inisialisasi statistics chart
+      setTimeout(() => {
+        initializeStatisticsChart();
+      }, 500);
+
+      // Handle dropdown period dengan JavaScript biasa
+      const dropdownButton = document.getElementById('periodDropdownButton');
+      const dropdownMenu = document.getElementById('periodDropdownMenu');
+      const dropdownArrow = document.getElementById('dropdownArrow');
+
+      if (dropdownButton && dropdownMenu) {
+        dropdownButton.addEventListener('click', function (e) {
+          e.stopPropagation();
+          dropdownMenu.classList.toggle('show');
+          dropdownArrow.classList.toggle('rotate-180');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (event) {
+          if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+            dropdownMenu.classList.remove('show');
+            dropdownArrow.classList.remove('rotate-180');
+          }
+        });
+
+        // Handle period selection
+        const periodOptions = dropdownMenu.querySelectorAll('.period-option');
+        periodOptions.forEach(option => {
+          option.addEventListener('click', function (e) {
+            // Remove active class from all options
+            periodOptions.forEach(opt => {
+              opt.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-800', 'dark:text-white');
+            });
+
+            // Add active class to clicked option
+            this.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-800', 'dark:text-white');
+
+            dropdownMenu.classList.remove('show');
+            dropdownArrow.classList.remove('rotate-180');
+          });
+        });
+      } else {
+        console.log('Dropdown elements not found');
+      }
+    });
+  </script>
 </body>
-<!-- plugin for charts  -->
-<script src="./assets/js/plugins/chartjs.min.js" async></script>
-<!-- plugin for scrollbar  -->
-<script src="./assets/js/plugins/perfect-scrollbar.min.js" async></script>
-<!-- github button -->
-<script async defer src="https://buttons.github.io/buttons.js"></script>
-<!-- main script file  -->
-<script src="./assets/js/soft-ui-dashboard-tailwind.js?v=1.0.5" async></script>
 
 </html>

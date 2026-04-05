@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Export Data Lowongan</title>
+        <style>
+            @page {
+                margin: 1cm;
+                size: A4 landscape;
+            }
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+                font-size: 12px;
+            }
+            h1 { 
+                color: #333; 
+                text-align: center; 
+                margin-bottom: 20px;
+                font-size: 18px;
+            }
+            .header-info {
+                margin-bottom: 20px;
+                font-size: 10px;
+                color: #666;
+            }
+            table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin-top: 20px; 
+            }
+            th, td { 
+                border: 1px solid #ddd; 
+                padding: 6px; 
+                text-align: left; 
+                font-size: 10px;
+            }
+            th { 
+                background-color: #f2f2f2; 
+                font-weight: bold; 
+            }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .summary { 
+                margin-top: 20px; 
+                font-weight: bold; 
+                text-align: center;
+                font-size: 12px;
+            }
+            .no-break {
+                page-break-inside: avoid;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>LAPORAN DATA LOWONGAN</h1>
+        <div class="header-info">
+            <p>Tanggal Export: 04/04/2026 07:25:45</p>
+            <p>Total Data: 4 lowongan</p>
+        </div>
+        <table class="no-break">
+            <thead>
+                <tr>
+                    <th width="5%">ID</th>
+                    <th width="20%">Judul Lowongan</th>
+                    <th width="12%">Kategori</th>
+                    <th width="10%">Jenis</th>
+                    <th width="15%">Lokasi</th>
+                    <th width="12%">Gaji</th>
+                    <th width="8%">Status</th>
+                    <th width="10%">Tgl Posting</th>
+                    <th width="8%">Tgl Tutup</th>
+                </tr>
+            </thead>
+            <tbody><tr>
+            <td>6</td>
+            <td>Desain Grafis</td>
+            <td>Desain Kreatif &amp; Multimedia</td>
+            <td>Internship</td>
+            <td>DKI Jakarta, Kota Jakarta Barat</td>
+            <td>Rp 6.500.000</td>
+            <td>Aktif</td>
+            <td>04/04/2026</td>
+            <td>21/04/2026</td>
+        </tr><tr>
+            <td>7</td>
+            <td>HRD</td>
+            <td>Sumber Daya Manusia (HR)</td>
+            <td>Full-time</td>
+            <td>Kalimantan Barat, Kota Singkawang</td>
+            <td>Rp 6.000.000</td>
+            <td>Aktif</td>
+            <td>04/04/2026</td>
+            <td>15/04/2026</td>
+        </tr><tr>
+            <td>4</td>
+            <td>Front End Developer</td>
+            <td>Media &amp; Komunikasi</td>
+            <td>Contract</td>
+            <td>Sulawesi Utara, Minahasa Utara</td>
+            <td>Rp 8.500.000</td>
+            <td>Aktif</td>
+            <td>05/02/2026</td>
+            <td>31/12/2024</td>
+        </tr><tr>
+            <td>1</td>
+            <td>Web Design Developer</td>
+            <td>Teknologi Informasi (IT)</td>
+            <td>Internship</td>
+            <td>Jawa Timur, Kota Malang</td>
+            <td>Rp 6.000.000</td>
+            <td>Aktif</td>
+            <td>06/01/2026</td>
+            <td>10/02/2025</td>
+        </tr></tbody></table>
+        <div class="summary">
+            <p>LAPORAN DATA LOWONGAN - TOTAL 4 DATA</p>
+        </div>
+    </body>
+    </html>

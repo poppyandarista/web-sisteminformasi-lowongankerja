@@ -1,0 +1,23 @@
+# Error Handling Configuration
+# Redirect semua HTTP error ke 404.php dengan status code
+
+# Error 400 - Bad Request
+ErrorDocument 400 /adminpanel/404.php
+
+# Error 401 - Unauthorized
+ErrorDocument 401 /adminpanel/404.php
+
+# Error 403 - Forbidden
+ErrorDocument 403 /adminpanel/404.php
+
+# Error 404 - Not Found
+ErrorDocument 404 /adminpanel/404.php
+
+# Error 500 - Internal Server Error
+ErrorDocument 500 /adminpanel/404.php
+
+# Error 503 - Service Unavailable
+ErrorDocument 503 /adminpanel/404.php
+
+# Prevent directory listing
+Options -Indexes

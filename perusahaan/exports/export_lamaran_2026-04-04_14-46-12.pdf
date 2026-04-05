@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Export Data Lamaran</title>
+        <style>
+            @page { margin: 1cm; size: A4 landscape; }
+            body { font-family: Arial, sans-serif; font-size: 10px; }
+            h1 { color: #2563eb; text-align: center; font-size: 16px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th { background-color: #2563eb; color: white; padding: 6px; font-size: 9px; }
+            td { border: 1px solid #ddd; padding: 5px; }
+            .header-info { margin-bottom: 15px; font-size: 9px; }
+        </style>
+    </head>
+    <body>
+        <h1>LAPORAN DATA LAMARAN MASUK</h1>
+        <div class="header-info">
+            <p>Tanggal Export: 04/04/2026 14:46:12</p>
+            <p>Total Data: 6 lamaran</p>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama Pelamar</th>
+                    <th>Email</th>
+                    <th>No. Telepon</th>
+                    <th>Lowongan</th>
+                    <th>Tgl Lamar</th>
+                    <th>Status</th>
+                    <th>Catatan</th>
+                </tr>
+            </thead>
+            <tbody><tr>
+            <td>1</td>
+            <td>User 123</td>
+            <td>funugepony@mailinator.com</td>
+            <td>085699359850</td>
+            <td>Front End Developer</td>
+            <td>10/02/2026</td>
+            <td>Diproses</td>
+            <td>Consectetur mollit 
+</td>
+        </tr><tr>
+            <td>2</td>
+            <td>Siti Nuraini</td>
+            <td>sitinur@gmail.com</td>
+            <td>082233445566</td>
+            <td>Web Design Developer</td>
+            <td>06/02/2026</td>
+            <td>Diterima</td>
+            <td>Kandidat sesuai kriteria, sedang dijadwalkan untuk</td>
+        </tr><tr>
+            <td>3</td>
+            <td>Rizky Re Maulanao</td>
+            <td>rizkymaulana@gmail.com</td>
+            <td>083344556677</td>
+            <td>Web Design Developer</td>
+            <td>06/02/2026</td>
+            <td>Diproses</td>
+            <td>Kandidat sesuai kriteria, sedang dijadwalkan untuk</td>
+        </tr><tr>
+            <td>4</td>
+            <td>Siti Nuraini</td>
+            <td>sitinur@gmail.com</td>
+            <td>082233445566</td>
+            <td>Web Design Developer</td>
+            <td>14/01/2026</td>
+            <td>Diproses</td>
+            <td>Kandidat memiliki pengalaman PHP yang kuat, lanjut</td>
+        </tr><tr>
+            <td>5</td>
+            <td>Rizky Re Maulanao</td>
+            <td>rizkymaulana@gmail.com</td>
+            <td>083344556677</td>
+            <td>Web Design Developer</td>
+            <td>14/01/2026</td>
+            <td>Ditolak</td>
+            <td>Sedang di review ulang oleh hrd. acc</td>
+        </tr><tr>
+            <td>6</td>
+            <td>Andika Putra Dwi ardy</td>
+            <td>andika@gmail.com</td>
+            <td>081234567111</td>
+            <td>Web Design Developer</td>
+            <td>10/01/2025</td>
+            <td>Diterima</td>
+            <td>CV sudah sesuai, menunggu interview</td>
+        </tr></tbody>
+        </table>
+        <div style="text-align: center; margin-top: 20px; font-size: 9px;">
+            Dicetak dari Sistem LinkUp - 2026
+        </div>
+    </body>
+    </html>

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register | Login</title>
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="assets/img/icon-linkup2.png">
+    <link rel="icon" type="image/png" href="assets/img/favicon.png">
     <style>
         * {
             margin: 0;
@@ -896,7 +896,7 @@
 
             <div class="career-header">
                 <div class="career-logo">
-                    <img src="assets/img/icon-linkup2.png" alt="LinkUp Logo"
+                    <img src="assets/img/favicon.png" alt="LinkUp Logo"
                         style="width: 100%; height: auto; max-width: 300px;">
                     <div class="career-glow"></div>
                 </div>

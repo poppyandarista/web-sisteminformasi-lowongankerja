@@ -1,3 +1,90 @@
+<?php
+session_start();
+include 'config/database.php';
+$db = new database();
+$categories = $db->tampil_data_kategori();
+
+// Get filter categories from database
+$filter_categories = $db->tampil_kategori_filter();
+
+// Get filter parameter from URL
+$selected_kategori = $_GET['filter_kategori'] ?? 'all';
+
+// Get jobs based on filter
+if ($selected_kategori === 'all') {
+  $latest_jobs = $db->tampil_data_lowongan();
+} else {
+  $latest_jobs = $db->filter_lowongan_kategori($selected_kategori);
+}
+
+// Get companies from database
+$companies = $db->tampil_data_perusahaan();
+
+// Icon mapping untuk kategori
+$icon_mapping = [
+  'Keuangan' => 'lni-home',
+  'Sale/Marketing' => 'lni-world',
+  'Pendidikan/Pelatihan' => 'lni-book',
+  'Teknologi' => 'lni-display',
+  'Seni/Desain' => 'lni-brush',
+  'Kesehatan' => 'lni-heart',
+  'Sains' => 'lni-funnel',
+  'Layanan Makanan' => 'lni-cup'
+];
+
+// Color mapping untuk kategori
+$color_mapping = [
+  0 => 'bg-color-1',
+  1 => 'bg-color-2',
+  2 => 'bg-color-3',
+  3 => 'bg-color-4',
+  4 => 'bg-color-5',
+  5 => 'bg-color-6',
+  6 => 'bg-color-7',
+  7 => 'bg-color-8'
+];
+
+// Function to calculate time ago
+function timeAgo($date)
+{
+  $timestamp = strtotime($date);
+  $current_time = time();
+  $time_diff = $current_time - $timestamp;
+
+  if ($time_diff < 3600) {
+    $minutes = floor($time_diff / 60);
+    return $minutes <= 1 ? "Baru saja" : "$minutes menit lalu";
+  } elseif ($time_diff < 86400) {
+    $hours = floor($time_diff / 3600);
+    return $hours <= 1 ? "1 jam lalu" : "$hours jam lalu";
+  } elseif ($time_diff < 2592000) {
+    $days = floor($time_diff / 86400);
+    return $days <= 1 ? "1 hari lalu" : "$days hari lalu";
+  } else {
+    return date("d M Y", $timestamp);
+  }
+}
+
+// Function to format salary
+function formatSalary($salary)
+{
+  if ($salary) {
+    return "Rp" . number_format($salary, 0, ',', '.');
+  }
+  return "Negosiasi";
+}
+
+// Function to generate filter URL
+function generateFilterUrl($kategori_id)
+{
+  $query_params = $_GET;
+  unset($query_params['filter_kategori']);
+  if ($kategori_id !== 'all') {
+    $query_params['filter_kategori'] = $kategori_id;
+  }
+  return 'index.php' . (empty($query_params) ? '' : '?' . http_build_query($query_params));
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -11,7 +98,7 @@
   <title>LinkUp - Temukan Pekerjaan Impianmu</title>
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="assets/img/icon-linkup2.png">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png">
 
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="assets/css/bootstrap.min.css" />
@@ -79,9 +166,14 @@
     }
 
     .company-logo {
-      max-width: 100%;
-      max-height: 60px;
+      width: 160px;
+      height: 160px;
+      border-radius: 12px;
       object-fit: contain;
+      margin: 0 auto 20px;
+      display: block;
+      background: transparent;
+      padding: 0;
     }
 
     .company-name {
@@ -418,6 +510,13 @@
       font-size: 16px;
     }
 
+    .job-count-badge {
+      margin-left: 6px;
+      font-size: 11px;
+      opacity: 0.8;
+      font-weight: 400;
+    }
+
     .no-jobs {
       grid-column: 1 / -1;
       text-align: center;
@@ -489,50 +588,12 @@
 </head>
 
 <body>
-  <!-- Header Section Start -->
-  <header id="home" class="hero-area">
-    <!-- Navbar Start -->
-    <nav class="navbar navbar-expand-lg fixed-top scrolling-navbar">
-      <div class="container">
-        <div class="theme-header clearfix">
-          <!-- Brand and toggle get grouped for better mobile display -->
-          <div class="navbar-header">
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#main-navbar"
-              aria-controls="main-navbar" aria-expanded="false" aria-label="Toggle navigation">
-              <span class="navbar-toggler-icon"></span>
-              <span class="lni-menu"></span>
-              <span class="lni-menu"></span>
-              <span class="lni-menu"></span>
-            </button>
-            <a href="index.php" class="navbar-brand"><img src="assets/img/icon-linkup.png" alt="" /></a>
-          </div>
-          <div class="collapse navbar-collapse" id="main-navbar">
-            <ul class="navbar-nav mr-auto w-100 justify-content-end">
-              <li class="nav-item active">
-                <a class="nav-link" href="index.php"> Cari Lowongan </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="perusahaan.php">
-                  Jelajahi Perusahaan
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="statuslamaran.php"> Status Lamaran </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="login.php">Masuk</a>
-              </li>
-              <li class="button-group">
-                <a href="index.php" class="button btn btn-common">Untuk Perusahaan</a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-      <div class="mobile-menu" data-logo="assets/img/icon-linkup.png"></div>
-    </nav>
-    <!-- Navbar End -->
+  <!-- ===== Header Start ===== -->
+  <?php include("header.php") ?>
+  <!-- ===== Header End -->
 
+  <!-- Hero Section Start -->
+  <header id="home" class="hero-area">
     <div class="container">
       <div class="row space-100 justify-content-center">
         <div class="col-lg-10 col-md-12 col-xs-12">
@@ -602,7 +663,7 @@
       </div>
     </div>
   </header>
-  <!-- Header Section End -->
+  <!-- Hero Section End -->
 
   <!-- Category Section Start -->
   <section class="category section bg-gray">
@@ -611,83 +672,214 @@
         <h2 class="section-title">Cari Kategori</h2>
         <p>Kategori lowongan kerja terpopuler, diurutkan berdasarkan popularitas</p>
       </div>
-      <div class="row">
-        <div class="col-lg-3 col-md-6 col-xs-12 f-category">
-          <a href="caripekerjaan.php">
-            <div class="icon bg-color-1">
-              <i class="lni-home"></i>
-            </div>
-            <h3>Keuangan</h3>
-            <p>(4286 pekerjaan)</p>
-          </a>
-        </div>
-        <div class="col-lg-3 col-md-6 col-xs-12 f-category">
-          <a href="caripekerjaan.php">
-            <div class="icon bg-color-2">
-              <i class="lni-world"></i>
-            </div>
-            <h3>Sale/Marketing</h3>
-            <p>(2000 pekerjaan)</p>
-          </a>
-        </div>
-        <div class="col-lg-3 col-md-6 col-xs-12 f-category">
-          <a href="caripekerjaan.php">
-            <div class="icon bg-color-3">
-              <i class="lni-book"></i>
-            </div>
-            <h3>Pendidikan/pelatihan</h3>
-            <p>(1450 pekerjaan)</p>
-          </a>
-        </div>
-        <div class="col-lg-3 col-md-6 col-xs-12 f-category border-right-0">
-          <a href="caripekerjaan.php">
-            <div class="icon bg-color-4">
-              <i class="lni-display"></i>
-            </div>
-            <h3>Teknologi</h3>
-            <p>(5100 pekerjaan)</p>
-          </a>
-        </div>
-        <div class="col-lg-3 col-md-6 col-xs-12 f-category border-bottom-0">
-          <a href="caripekerjaan.php">
-            <div class="icon bg-color-5">
-              <i class="lni-brush"></i>
-            </div>
-            <h3>Seni/Desain</h3>
-            <p>(5079 pekerjaan)</p>
-          </a>
-        </div>
-        <div class="col-lg-3 col-md-6 col-xs-12 f-category border-bottom-0">
-          <a href="caripekerjaan.php">
-            <div class="icon bg-color-6">
-              <i class="lni-heart"></i>
-            </div>
-            <h3>Kesehatan</h3>
-            <p>(3235 pekerjaan)</p>
-          </a>
-        </div>
-        <div class="col-lg-3 col-md-6 col-xs-12 f-category border-bottom-0">
-          <a href="caripekerjaan.php">
-            <div class="icon bg-color-7">
-              <i class="lni-funnel"></i>
-            </div>
-            <h3>Sains</h3>
-            <p>(1800 pekerjaan)</p>
-          </a>
-        </div>
-        <div class="col-lg-3 col-md-6 col-xs-12 f-category border-right-0 border-bottom-0">
-          <a href="caripekerjaan.php">
-            <div class="icon bg-color-8">
-              <i class="lni-cup"></i>
-            </div>
-            <h3>Layanan Makanan</h3>
-            <p>(4286 pekerjaan)</p>
-          </a>
-        </div>
+      <div class="row" id="categoryGrid">
+        <?php
+        $index = 0;
+        $visible_count = 8; // 2 baris x 4 kolom
+        foreach ($categories as $category):
+          $icon_class = $icon_mapping[$category['nama_kategori']] ?? 'lni-folder';
+          $color_class = $color_mapping[$index % 8];
+          $border_classes = '';
+          $hidden_class = ($index >= $visible_count) ? 'category-hidden' : '';
+
+          // Add border classes untuk layout grid
+          if ($index % 4 == 3)
+            $border_classes .= ' border-right-0';
+          if ($index >= 4)
+            $border_classes .= ' border-bottom-0';
+          ?>
+          <div class="col-lg-3 col-md-6 col-xs-12 f-category<?php echo $border_classes . ' ' . $hidden_class; ?>"
+            data-category-index="<?php echo $index; ?>">
+            <a
+              href="caripekerjaan.php?kategori=<?php echo urlencode($category['nama_kategori']); ?>&id=<?php echo $category['id_kategori']; ?>">
+              <div class="icon <?php echo $color_class; ?>">
+                <i class="<?php echo $icon_class; ?>"></i>
+              </div>
+              <h3><?php echo htmlspecialchars($category['nama_kategori']); ?></h3>
+              <p>(<?php echo number_format($category['jumlah_lowongan']); ?> pekerjaan)</p>
+            </a>
+          </div>
+          <?php
+          $index++;
+        endforeach;
+        ?>
       </div>
+
+      <?php if (count($categories) > $visible_count): ?>
+        <div class="text-center mt-4">
+          <button id="loadMoreCategories" class="btn btn-common">
+            <i class="lni-plus"></i> Lihat Lainnya
+          </button>
+          <button id="showLessCategories" class="btn btn-common" style="display: none;">
+            <i class="lni-minus"></i> Tampilkan Sedikit
+          </button>
+        </div>
+      <?php endif; ?>
     </div>
   </section>
   <!-- Category Section End -->
+
+  <style>
+    .category-hidden {
+      display: none;
+    }
+
+    .category-visible {
+      display: block;
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Job Tag Positioning */
+    .job-card {
+      position: relative;
+    }
+
+    .job-tag-wrapper {
+      position: absolute;
+      bottom: 52px;
+      /* diturunkan sedikit */
+      right: 40px;
+      z-index: 2;
+    }
+
+    .job-tag {
+      background: #4e73df;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px rgba(78, 115, 223, 0.3);
+      white-space: nowrap;
+      transition: all 0.3s ease;
+    }
+
+    .job-tag.fulltime,
+    .job-tag.full-time {
+      background: #28a745;
+      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    }
+
+    .job-tag.parttime,
+    .job-tag.part-time {
+      background: #ffc107;
+      color: #212529;
+      box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+    }
+
+    .job-tag.freelance {
+      background: #6f42c1;
+      box-shadow: 0 2px 8px rgba(111, 66, 193, 0.3);
+    }
+
+    .job-tag:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(78, 115, 223, 0.4);
+    }
+
+    .job-tag.fulltime:hover,
+    .job-tag.full-time:hover {
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    }
+
+    .job-tag.parttime:hover,
+    .job-tag.part-time:hover {
+      box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+    }
+
+    .job-tag.freelance:hover {
+      box-shadow: 0 4px 12px rgba(111, 66, 193, 0.4);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .job-tag-wrapper {
+        top: 10px;
+        right: 50px;
+      }
+
+      .job-tag {
+        font-size: 10px;
+        padding: 3px 10px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .job-tag-wrapper {
+        top: 8px;
+        right: 45px;
+      }
+
+      .job-tag {
+        font-size: 9px;
+        padding: 2px 8px;
+      }
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const loadMoreBtn = document.getElementById('loadMoreCategories');
+      const showLessBtn = document.getElementById('showLessCategories');
+      const categoryGrid = document.getElementById('categoryGrid');
+      const hiddenCategories = document.querySelectorAll('.category-hidden');
+
+      let currentlyVisible = 8; // Awalnya 2 baris
+      const increment = 4; // Tambah 1 baris (4 cards) setiap klik
+
+      if (loadMoreBtn && hiddenCategories.length > 0) {
+        loadMoreBtn.addEventListener('click', function () {
+          const nextHidden = document.querySelectorAll('.category-hidden');
+          const toShow = Math.min(increment, nextHidden.length);
+
+          for (let i = 0; i < toShow; i++) {
+            nextHidden[i].classList.remove('category-hidden');
+            nextHidden[i].classList.add('category-visible');
+          }
+
+          currentlyVisible += toShow;
+
+          // Sembunyikan button jika semua kategori sudah visible
+          if (currentlyVisible >= <?php echo count($categories); ?>) {
+            loadMoreBtn.style.display = 'none';
+            showLessBtn.style.display = 'inline-flex';
+          }
+        });
+
+        showLessBtn.addEventListener('click', function () {
+          // Sembunyikan semua kategori kecuali 8 pertama
+          const allCategories = document.querySelectorAll('[data-category-index]');
+          allCategories.forEach((category, index) => {
+            if (index >= 8) {
+              category.classList.add('category-hidden');
+              category.classList.remove('category-visible');
+            }
+          });
+
+          loadMoreBtn.style.display = 'inline-flex';
+          showLessBtn.style.display = 'none';
+          currentlyVisible = 8;
+
+          // Scroll ke category section
+          document.querySelector('.category').scrollIntoView({ behavior: 'smooth' });
+        });
+      }
+    });
+  </script>
 
   <!-- Listings Section Start -->
   <section id="job-listings" class="section">
@@ -701,231 +893,87 @@
 
             <!-- Filter Tags -->
             <div class="filter-tags">
-              <div class="filter-tag active" data-category="all">
+              <a href="<?php echo generateFilterUrl('all'); ?>"
+                class="filter-tag <?php echo $selected_kategori === 'all' ? 'active' : ''; ?>" data-category="all">
                 <i class="lni-grid-alt"></i> Semua Pekerjaan
-              </div>
-              <div class="filter-tag" data-category="it">
-                <i class="lni-laptop-phone"></i> IT & Software
-              </div>
-              <div class="filter-tag" data-category="marketing">
-                <i class="lni-bullhorn"></i> Marketing
-              </div>
-              <div class="filter-tag" data-category="finance">
-                <i class="lni-pie-chart"></i> Keuangan
-              </div>
-              <div class="filter-tag" data-category="design">
-                <i class="lni-paint-roller"></i> Desain
-              </div>
-              <div class="filter-tag" data-category="sales">
-                <i class="lni-cart"></i> Sales
-              </div>
-              <div class="filter-tag" data-category="education">
-                <i class="lni-graduation"></i> Pendidikan
-              </div>
-              <div class="filter-tag" data-category="healthcare">
-                <i class="lni-heart"></i> Kesehatan
-              </div>
+              </a>
+              <?php foreach ($filter_categories as $kategori): ?>
+                <a href="<?php echo generateFilterUrl($kategori['id_kategori']); ?>"
+                  class="filter-tag <?php echo $selected_kategori == $kategori['id_kategori'] ? 'active' : ''; ?>"
+                  data-category="<?php echo strtolower(str_replace([' ', '/', '&'], '', $kategori['nama_kategori'])); ?>">
+                  <i class="<?php echo $icon_mapping[$kategori['nama_kategori']] ?? 'lni-folder'; ?>"></i>
+                  <?php echo htmlspecialchars($kategori['nama_kategori']); ?>
+                  <?php if ($kategori['jumlah_lowongan'] > 0): ?>
+                    <span class="job-count-badge">(<?php echo $kategori['jumlah_lowongan']; ?>)</span>
+                  <?php endif; ?>
+                </a>
+              <?php endforeach; ?>
             </div>
           </div>
 
           <div class="job-grid" id="jobGrid">
-            <!-- Job Card 1 - IT -->
-            <a href="job-detail.php" class="job-card-link">
-              <div class="job-card" data-category="it">
-                <button class="save-job-btn" data-job-id="1">
-                  <i class="lni-heart"></i>
-                </button>
-                <div class="job-tag full-time">Full Time</div>
-                <div class="job-header">
-                  <img src="assets/img/product/img1.png" alt="Company Logo" class="company-logo" />
-                  <div class="job-info">
-                    <h3 class="job-title">Frontend Dev</h3>
-                    <p class="company-name">PT Tech Solutions</p>
+            <?php if (!empty($latest_jobs)): ?>
+              <?php foreach (array_slice($latest_jobs, 0, 6) as $index => $job): ?>
+                <a href="job-detail.php?id=<?php echo $job['id_lowongan']; ?>" class="job-card-link">
+                  <div class="job-card"
+                    data-category="<?php echo strtolower(str_replace([' ', '/', '&'], '', $job['nama_kategori'])); ?>">
+                    <button class="save-job-btn" data-job-id="<?php echo $job['id_lowongan']; ?>">
+                      <i class="lni-heart"></i>
+                    </button>
+                    <div class="job-tag-wrapper">
+                      <span class="job-tag <?php echo strtolower(str_replace([' ', '/'], '', $job['nama_jenis'])); ?>">
+                        <?php echo htmlspecialchars($job['nama_jenis']); ?>
+                      </span>
+                    </div>
+                    <div class="job-header">
+                      <img
+                        src="adminpanel/src/images/jobs/<?php echo $job['gambar'] ?: 'img' . (($index % 3) + 1) . '.png'; ?>"
+                        alt="Company Logo" class="company-logo" />
+                      <div class="job-info">
+                        <h3 class="job-title">
+                          <?php echo htmlspecialchars($job['judul_lowongan']); ?>
+                        </h3>
+                        <p class="company-name">
+                          <?php echo htmlspecialchars($job['nama_perusahaan']); ?>
+                        </p>
+                      </div>
+                    </div>
+                    <div class="job-meta">
+                      <div class="job-meta-item">
+                        <i class="lni-map-marker"></i>
+                        <?php echo htmlspecialchars($job['nama_kota'] ?: 'Indonesia'); ?>
+                      </div>
+                      <div class="job-meta-item">
+                        <i class="lni-briefcase"></i>
+                        <?php echo htmlspecialchars($job['nama_jenis']); ?>
+                      </div>
+                      <div class="job-meta-item">
+                        <i class="lni-graduation"></i> Min. S1
+                      </div>
+                    </div>
+                    <div class="job-salary">
+                      <?php echo formatSalary($job['gaji_lowongan']); ?>
+                    </div>
+                    <div class="job-footer">
+                      <span class="job-type">
+                        <?php echo htmlspecialchars($job['nama_kategori']); ?>
+                      </span>
+                      <span class="posted-time"><i class="lni-timer"></i>
+                        <?php echo timeAgo($job['tanggal_posting']); ?>
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div class="job-meta">
-                  <div class="job-meta-item">
-                    <i class="lni-map-marker"></i> Jakarta Selatan
-                  </div>
-                  <div class="job-meta-item">
-                    <i class="lni-graduation"></i> Min. S1
-                  </div>
-                  <div class="job-meta-item">
-                    <i class="lni-briefcase"></i> 2+ Tahun
-                  </div>
-                </div>
-                <div class="job-salary">Rp8.000.000 - 15.000.000</div>
-                <div class="job-footer">
-                  <span class="job-type">IT & Software</span>
-                  <span class="posted-time"><i class="lni-timer"></i> 2 jam lalu</span>
-                </div>
-              </div>
-            </a>
-
-            <!-- Job Card 2 - Marketing -->
-            <a href="job-detail.php" class="job-card-link">
-              <div class="job-card" data-category="marketing">
-                <button class="save-job-btn" data-job-id="2">
-                  <i class="lni-heart"></i>
-                </button>
-                <div class="job-tag full-time">Full Time</div>
-                <div class="job-header">
-                  <img src="assets/img/product/img2.png" alt="Company Logo" class="company-logo" />
-                  <div class="job-info">
-                    <h3 class="job-title">Digital Marketer</h3>
-                    <p class="company-name">PT Digital Nusantara</p>
-                  </div>
-                </div>
-                <div class="job-meta">
-                  <div class="job-meta-item">
-                    <i class="lni-map-marker"></i> Jakarta Pusat
-                  </div>
-                  <div class="job-meta-item">
-                    <i class="lni-graduation"></i> Min. D3
-                  </div>
-                  <div class="job-meta-item">
-                    <i class="lni-briefcase"></i> 1+ Tahun
-                  </div>
-                </div>
-                <div class="job-salary">Rp6.500.000 - 10.000.000</div>
-                <div class="job-footer">
-                  <span class="job-type">Marketing</span>
-                  <span class="posted-time"><i class="lni-timer"></i> 1 hari lalu</span>
+                </a>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <div class="col-12">
+                <div class="no-jobs">
+                  <i class="lni-briefcase" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                  <h4>Belum ada lowongan tersedia</h4>
+                  <p>Lowongan pekerjaan terbaru akan segera tersedia. Silakan cek kembali nanti!</p>
                 </div>
               </div>
-            </a>
-
-            <!-- Job Card 3 - Finance -->
-            <a href="job-detail.php" class="job-card-link">
-              <div class="job-card" data-category="finance">
-                <button class="save-job-btn" data-job-id="3">
-                  <i class="lni-heart"></i>
-                </button>
-                <div class="job-tag full-time">Full Time</div>
-                <div class="job-header">
-                  <img src="assets/img/product/img3.png" alt="Company Logo" class="company-logo" />
-                  <div class="job-info">
-                    <h3 class="job-title">Accounting</h3>
-                    <p class="company-name">PT BCA Finance</p>
-                  </div>
-                </div>
-                <div class="job-meta">
-                  <div class="job-meta-item">
-                    <i class="lni-map-marker"></i> Tangerang Selatan
-                  </div>
-                  <div class="job-meta-item">
-                    <i class="lni-graduation"></i> Min. S1 Akuntansi
-                  </div>
-                  <div class="job-meta-item">
-                    <i class="lni-briefcase"></i> 1+ Tahun
-                  </div>
-                </div>
-                <div class="job-salary">Rp7.500.000 - 12.000.000</div>
-                <div class="job-footer">
-                  <span class="job-type">Finance</span>
-                  <span class="posted-time"><i class="lni-timer"></i> 5 jam lalu</span>
-                </div>
-              </div>
-            </a>
-
-            <!-- Job Card 4 - Design -->
-            <a href="job-detail.php" class="job-card-link">
-              <div class="job-card" data-category="design">
-                <button class="save-job-btn" data-job-id="4">
-                  <i class="lni-heart"></i>
-                </button>
-                <div class="job-tag part-time">Part Time</div>
-                <div class="job-header">
-                  <img src="assets/img/product/img1.png" alt="Company Logo" class="company-logo" />
-                  <div class="job-info">
-                    <h3 class="job-title">UI/UX Designer</h3>
-                    <p class="company-name">PT Kreatif Digital</p>
-                  </div>
-                </div>
-                <div class="job-meta">
-                  <div class="job-meta-item">
-                    <i class="lni-map-marker"></i> Bandung
-                  </div>
-                  <div class="job-meta-item">
-                    <i class="lni-graduation"></i> Min. D3
-                  </div>
-                  <div class="job-meta-item">
-                    <i class="lni-briefcase"></i> 1+ Tahun
-                  </div>
-                </div>
-                <div class="job-salary">Rp150.000 - 250.000</div>
-                <div class="job-footer">
-                  <span class="job-type">Design</span>
-                  <span class="posted-time"><i class="lni-timer"></i> 2 hari lalu</span>
-                </div>
-              </div>
-            </a>
-
-            <!-- Job Card 5 - Sales -->
-            <a href="job-detail.php" class="job-card-link">
-              <div class="job-card" data-category="sales">
-                <button class="save-job-btn" data-job-id="5">
-                  <i class="lni-heart"></i>
-                </button>
-                <div class="job-tag full-time">Full Time</div>
-                <div class="job-header">
-                  <img src="assets/img/product/img2.png" alt="Company Logo" class="company-logo" />
-                  <div class="job-info">
-                    <h3 class="job-title">Sales Executive</h3>
-                    <p class="company-name">PT Global Jaya</p>
-                  </div>
-                </div>
-                <div class="job-meta">
-                  <div class="job-meta-item">
-                    <i class="lni-map-marker"></i> Jakarta Pusat
-                  </div>
-                  <div class="job-meta-item">
-                    <i class="lni-graduation"></i> Min. SMA/SMK
-                  </div>
-                  <div class="job-meta-item">
-                    <i class="lni-briefcase"></i> 1-3 Tahun
-                  </div>
-                </div>
-                <div class="job-salary">Rp4.000.000</div>
-                <div class="job-footer">
-                  <span class="job-type">Sales</span>
-                  <span class="posted-time"><i class="lni-timer"></i> 1 minggu lalu</span>
-                </div>
-              </div>
-            </a>
-
-            <!-- Job Card 6 - Education -->
-            <a href="job-detail.php" class="job-card-link">
-              <div class="job-card" data-category="education">
-                <button class="save-job-btn" data-job-id="6">
-                  <i class="lni-heart"></i>
-                </button>
-                <div class="job-tag full-time">Full Time</div>
-                <div class="job-header">
-                  <img src="assets/img/product/img3.png" alt="Company Logo" class="company-logo" />
-                  <div class="job-info">
-                    <h3 class="job-title">Guru Matematika</h3>
-                    <p class="company-name">SMA Bina Bangsa</p>
-                  </div>
-                </div>
-                <div class="job-meta">
-                  <div class="job-meta-item">
-                    <i class="lni-map-marker"></i> Depok
-                  </div>
-                  <div class="job-meta-item">
-                    <i class="lni-graduation"></i> Min. S1 Pendidikan
-                  </div>
-                  <div class="job-meta-item">
-                    <i class="lni-briefcase"></i> 2+ Tahun
-                  </div>
-                </div>
-                <div class="job-salary">Rp5.000.000 - 8.000.000</div>
-                <div class="job-footer">
-                  <span class="job-type">Education</span>
-                  <span class="posted-time"><i class="lni-timer"></i> 3 hari lalu</span>
-                </div>
-              </div>
-            </a>
+            <?php endif; ?>
           </div>
           <!-- End Job Grid -->
 
@@ -976,55 +1024,28 @@
 
       <div class="company-slider-container">
         <div class="company-slider">
-          <!-- Company Card 1 -->
-          <div class="company-card">
-            <div class="company-logo-container">
-              <img src="assets/img/product/img1.png" alt="Gojek" class="company-logo" />
+          <?php if (!empty($companies)): ?>
+            <?php foreach ($companies as $company): ?>
+              <div class="company-card">
+                <img src="adminpanel/src/images/company/<?php echo htmlspecialchars($company['logo_display']); ?>"
+                  alt="<?php echo htmlspecialchars($company['nama_perusahaan']); ?>" class="company-logo" />
+                <h3 class="company-name"><?php echo htmlspecialchars($company['nama_perusahaan']); ?></h3>
+                <div class="job-count">
+                  <?php if ($company['jumlah_lowongan'] > 0): ?>
+                    <?php echo $company['jumlah_lowongan']; ?> Lowongan Tersedia
+                  <?php else: ?>
+                    Belum ada lowongan
+                  <?php endif; ?>
+                </div>
+                <a href="company-details.php?id=<?php echo $company['id_perusahaan']; ?>" class="btn-view-jobs">Lihat
+                  Perusahaan</a>
+              </div>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <div class="col-12 text-center">
+              <p>Belum ada perusahaan yang terdaftar.</p>
             </div>
-            <h3 class="company-name">Gojek</h3>
-            <div class="job-count">24 Lowongan Tersedia</div>
-            <a href="company-details.php?id=1" class="btn-view-jobs">Lihat Perusahaan</a>
-          </div>
-
-          <!-- Company Card 2 -->
-          <div class="company-card">
-            <div class="company-logo-container">
-              <img src="assets/img/product/img2.png" alt="Tokopedia" class="company-logo" />
-            </div>
-            <h3 class="company-name">Tokopedia</h3>
-            <div class="job-count">18 Lowongan Tersedia</div>
-            <a href="company-details.php?id=1" class="btn-view-jobs">Lihat Perusahaan</a>
-          </div>
-
-          <!-- Company Card 3 -->
-          <div class="company-card">
-            <div class="company-logo-container">
-              <img src="assets/img/product/img3.png" alt="Traveloka" class="company-logo" />
-            </div>
-            <h3 class="company-name">Traveloka</h3>
-            <div class="job-count">15 Lowongan Tersedia</div>
-            <a href="company-details.php?id=1" class="btn-view-jobs">Lihat Perusahaan</a>
-          </div>
-
-          <!-- Company Card 4 -->
-          <div class="company-card">
-            <div class="company-logo-container">
-              <img src="assets/img/product/img1.png" alt="Shopee" class="company-logo" />
-            </div>
-            <h3 class="company-name">Shopee</h3>
-            <div class="job-count">22 Lowongan Tersedia</div>
-            <a href="company-details.php?id=1" class="btn-view-jobs">Lihat Perusahaan</a>
-          </div>
-
-          <!-- Company Card 5 -->
-          <div class="company-card">
-            <div class="company-logo-container">
-              <img src="assets/img/product/img2.png" alt="Bukalapak" class="company-logo" />
-            </div>
-            <h3 class="company-name">Bukalapak</h3>
-            <div class="job-count">12 Lowongan Tersedia</div>
-            <a href="company-details.php?id=1" class="btn-view-jobs">Lihat Perusahaan</a>
-          </div>
+          <?php endif; ?>
         </div>
 
         <div class="slider-controls">
@@ -1040,7 +1061,7 @@
         <!-- View All Companies Button -->
         <div class="row mt-4">
           <div class="col-12 text-center">
-            <a href="perusahaan.php" class="btn btn-common">
+            <a href="jelajahi-perusahaan.php" class="btn btn-common">
               <i class="lni-arrow-right-circle"></i> Lihat Semua Perusahaan
             </a>
           </div>
@@ -1112,7 +1133,7 @@
           <div class="col-lg-3 col-md-3 col-xs-12">
             <div class="widget">
               <div class="footer-logo">
-                <img src="assets/img/icon-linkup.png" alt="" />
+                <img src="assets/img/logo2.png" alt="" />
               </div>
               <div class="textwidget">
                 <p>
@@ -1127,7 +1148,7 @@
               <h3 class="block-title">Quick Links</h3>
               <ul class="menu">
                 <li><a href="index.php">Cari Lowongan</a></li>
-                <li><a href="perusahaan.php">Perusahaan</a></li>
+                <li><a href="jelajahi-perusahaan.php">Perusahaan</a></li>
                 <li><a href="statuslamaran.php">Status Lamaran</a></li>
               </ul>
               <ul class="menu">
@@ -1182,13 +1203,31 @@
   <script>
     // Save Job Functionality
     document.addEventListener('DOMContentLoaded', function () {
+      // Migrate old localStorage format (only IDs) to new format (full objects)
+      function migrateSavedJobs() {
+        const oldSavedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+
+        // Check if data is old format (array of strings/IDs only)
+        if (oldSavedJobs.length > 0 && typeof oldSavedJobs[0] === 'string') {
+          // Clear old format
+          localStorage.setItem('savedJobs', '[]');
+          console.log('Migrated old saved jobs format to new format');
+        }
+      }
+
+      // Run migration
+      migrateSavedJobs();
+
       // Load saved jobs from localStorage
       const savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
 
       // Initialize save buttons
       document.querySelectorAll('.save-job-btn').forEach(button => {
         const jobId = button.getAttribute('data-job-id');
-        if (savedJobs.includes(jobId)) {
+
+        // Check if job is already saved
+        const isSaved = savedJobs.some(job => job.id === jobId);
+        if (isSaved) {
           button.classList.add('saved');
           button.innerHTML = '<i class="lni-heart-filled"></i>';
         }
@@ -1199,12 +1238,14 @@
           e.stopPropagation();
 
           const jobId = this.getAttribute('data-job-id');
-          const savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
-          const jobIndex = savedJobs.indexOf(jobId);
+          const jobData = getJobDataFromCard(this);
+          let savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+          const jobIndex = savedJobs.findIndex(job => job.id === jobId);
 
           if (jobIndex === -1) {
-            // Save job
-            savedJobs.push(jobId);
+            // Save job with full data
+            jobData.savedDate = new Date().toLocaleDateString('id-ID');
+            savedJobs.push(jobData);
             this.classList.add('saved');
             this.innerHTML = '<i class="lni-heart-filled"></i>';
             // Show success message or animation
@@ -1223,6 +1264,49 @@
           localStorage.setItem('savedJobs', JSON.stringify(savedJobs));
         });
       });
+
+      // Function to get job data from card
+      function getJobDataFromCard(button) {
+        const card = button.closest('.job-card');
+
+        const titleElement = card.querySelector('.job-title');
+        const companyElement = card.querySelector('.company-name');
+        const salaryElement = card.querySelector('.job-salary');
+        const imageElement = card.querySelector('.company-logo');
+
+        // Get location (first meta item with map-marker)
+        const locationItem = card.querySelector('.job-meta-item .lni-map-marker')?.parentElement;
+        let locationText = 'Indonesia';
+        if (locationItem) {
+          locationText = locationItem.textContent.replace('', '').trim();
+        }
+
+        // Get type (second meta item with briefcase)
+        const typeItem = card.querySelector('.job-meta-item .lni-briefcase')?.parentElement;
+        let typeText = 'Full-time';
+        if (typeItem) {
+          typeText = typeItem.textContent.replace('', '').trim();
+        }
+
+        // Get salary
+        let salaryText = 'Negosiasi';
+        if (salaryElement) {
+          salaryText = salaryElement.textContent.trim();
+        }
+
+        const jobData = {
+          id: button.getAttribute('data-job-id'),
+          title: titleElement?.textContent?.trim() || 'Tidak ada judul',
+          company: companyElement?.textContent?.trim() || 'Tidak ada perusahaan',
+          location: locationText,
+          type: typeText,
+          salary: salaryText,
+          image: imageElement?.src || 'assets/img/product/img1.png',
+          link: `job-detail.php?id=${button.getAttribute('data-job-id')}`
+        };
+
+        return jobData;
+      }
     });
 
     // Company Slider Functionality

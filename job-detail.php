@@ -1,3 +1,131 @@
+<?php
+session_start();
+include 'config/database.php';
+
+$db = new database();
+
+// Get job ID from URL
+$job_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+if ($job_id <= 0) {
+    header("Location: index.php");
+    exit;
+}
+
+// Get job details with all related data
+$query_job = "SELECT l.*, p.nama_perusahaan, p.email_perusahaan, p.nohp_perusahaan, 
+                     p.deskripsi_perusahaan, p.logo_perusahaan, p.alamat_perusahaan,
+                     pr.nama_provinsi, k.nama_kota, kat.nama_kategori, j.nama_jenis
+              FROM lowongan l 
+              LEFT JOIN perusahaan p ON l.id_perusahaan = p.id_perusahaan 
+              LEFT JOIN provinsi pr ON l.id_provinsi = pr.id_provinsi
+              LEFT JOIN kota k ON l.id_kota = k.id_kota
+              LEFT JOIN kategori kat ON l.kategori_lowongan = kat.id_kategori
+              LEFT JOIN jenis j ON l.id_jenis = j.id_jenis
+              WHERE l.id_lowongan = ? AND l.status = 'Aktif'";
+$stmt = $db->koneksi->prepare($query_job);
+$stmt->bind_param("i", $job_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$job = $result->fetch_assoc();
+
+if (!$job) {
+    header("Location: index.php");
+    exit;
+}
+
+// Get company logo display
+$logo_display = $job['logo_perusahaan'];
+if (empty($logo_display)) {
+    $logo_display = 'img' . ((($job['id_perusahaan'] - 1) % 3) + 1) . '.png';
+}
+
+// Function to format salary
+function formatSalary($salary)
+{
+    if (!empty($salary) && is_numeric($salary)) {
+        return "Rp" . number_format($salary, 0, ',', '.');
+    }
+    return "Negosiasi";
+}
+
+// Function to calculate time ago
+function timeAgo($date)
+{
+    if (empty($date))
+        return "Baru saja";
+
+    $timestamp = strtotime($date);
+    if ($timestamp === false)
+        return "Baru saja";
+
+    $current_time = time();
+    $time_diff = $current_time - $timestamp;
+
+    if ($time_diff < 3600) {
+        $minutes = floor($time_diff / 60);
+        return $minutes <= 1 ? "Baru saja" : "$minutes menit lalu";
+    } elseif ($time_diff < 86400) {
+        $hours = floor($time_diff / 3600);
+        return $hours <= 1 ? "1 jam lalu" : "$hours jam lalu";
+    } elseif ($time_diff < 2592000) {
+        $days = floor($time_diff / 86400);
+        return $days <= 1 ? "1 hari lalu" : "$days hari lalu";
+    } else {
+        return date("d M Y", $timestamp);
+    }
+}
+
+// Function to format date
+function formatDate($date)
+{
+    if (empty($date))
+        return "Belum ditentukan";
+    return date("d M Y", strtotime($date));
+}
+
+// Function to parse text with newlines to HTML list
+function textToList($text)
+{
+    if (empty($text))
+        return [];
+    $lines = explode("\n", $text);
+    $items = [];
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (!empty($line)) {
+            $items[] = $line;
+        }
+    }
+    return $items;
+}
+
+// Parse kualifikasi and pertanyaan
+$kualifikasi_list = textToList($job['kualifikasi']);
+$pertanyaan_list = textToList($job['pertanyaan']);
+
+// Get similar jobs (optional)
+$query_similar = "SELECT l.*, p.nama_perusahaan, k.nama_kota, kat.nama_kategori, j.nama_jenis
+                  FROM lowongan l 
+                  LEFT JOIN perusahaan p ON l.id_perusahaan = p.id_perusahaan 
+                  LEFT JOIN kota k ON l.id_kota = k.id_kota
+                  LEFT JOIN kategori kat ON l.kategori_lowongan = kat.id_kategori
+                  LEFT JOIN jenis j ON l.id_jenis = j.id_jenis
+                  WHERE l.status = 'Aktif' AND l.id_lowongan != ? 
+                  AND l.kategori_lowongan = ?
+                  LIMIT 3";
+$stmt_similar = $db->koneksi->prepare($query_similar);
+$stmt_similar->bind_param("ii", $job_id, $job['kategori_lowongan']);
+$stmt_similar->execute();
+$result_similar = $stmt_similar->get_result();
+$similar_jobs = [];
+while ($row = $result_similar->fetch_assoc()) {
+    $similar_jobs[] = $row;
+}
+$stmt_similar->close();
+
+$stmt->close();
+?>
 <!DOCTYPE html>
 <html lang="id">
 
@@ -8,10 +136,10 @@
     <meta name="keywords" content="Lowongan Kerja, Cari Pekerjaan, Portal Karir, Loker Terbaru, Pencarian Kerja" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
     <meta name="author" content="UIdeck" />
-    <title>Detail Pekerjaan | LinkUp</title>
+    <title><?php echo htmlspecialchars($job['judul_lowongan']); ?> | LinkUp</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="assets/img/icon-linkup2.png">
+    <link rel="icon" type="image/png" href="assets/img/favicon.png">
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="assets/css/bootstrap.min.css" />
@@ -74,18 +202,15 @@
             color: white;
         }
 
-        /* Ukuran judul lowongan diperkecil */
         .job-detail-header h1 {
             font-weight: 700;
             margin-bottom: 8px;
             font-size: 1.8rem;
-            /* Diperkecil dari 2.5rem */
         }
 
         .job-detail-header p {
             opacity: 0.9;
             font-size: 1rem;
-            /* Diperkecil dari 1.1rem */
             margin-bottom: 15px;
         }
 
@@ -104,18 +229,15 @@
             border-radius: 20px;
             backdrop-filter: blur(10px);
             font-size: 0.85rem;
-            /* Diperkecil */
         }
 
         .job-meta-item i {
             margin-right: 6px;
             font-size: 0.9rem;
-            /* Diperkecil */
         }
 
         .job-content {
             padding: 30px 0;
-            /* Diperkecil padding */
         }
 
         .job-main-content {
@@ -126,23 +248,19 @@
             margin-bottom: 25px;
         }
 
-        /* Ukuran heading konten utama diperkecil */
         .job-main-content h3 {
             margin-bottom: 15px;
             padding-bottom: 12px;
             border-bottom: 1px solid #eee;
             color: #2d3748;
             font-size: 1.3rem;
-            /* Diperkecil */
         }
 
-        /* Ukuran deskripsi pekerjaan diperkecil */
         .job-description {
             line-height: 1.6;
             color: #4a5568;
             margin-bottom: 20px;
             font-size: 0.95rem;
-            /* Diperkecil */
         }
 
         .job-requirements,
@@ -151,12 +269,10 @@
             margin-bottom: 20px;
         }
 
-        /* Ukuran heading sub-section diperkecil */
         .job-requirements h4,
         .job-responsibilities h4,
         .job-benefits h4 {
             font-size: 1.1rem;
-            /* Diperkecil */
             margin-bottom: 12px;
             color: #2d3748;
         }
@@ -174,7 +290,6 @@
             margin-bottom: 6px;
             line-height: 1.5;
             font-size: 0.9rem;
-            /* Diperkecil */
         }
 
         .job-sidebar {
@@ -192,9 +307,7 @@
 
         .company-logo {
             width: 70px;
-            /* Diperkecil */
             height: 70px;
-            /* Diperkecil */
             border-radius: 8px;
             object-fit: cover;
             margin: 0 auto 12px;
@@ -205,7 +318,6 @@
 
         .company-name {
             font-size: 1.1rem;
-            /* Diperkecil */
             font-weight: 600;
             margin-bottom: 8px;
             color: #2d3748;
@@ -213,7 +325,6 @@
 
         .company-info p {
             font-size: 0.85rem;
-            /* Diperkecil */
             color: #6c757d;
             line-height: 1.4;
         }
@@ -230,7 +341,6 @@
             border-radius: 6px;
             font-weight: 600;
             font-size: 14px;
-            /* Diperkecil */
             width: 100%;
             transition: all 0.3s ease;
             margin-bottom: 12px;
@@ -250,7 +360,6 @@
             border-radius: 6px;
             font-weight: 500;
             font-size: 14px;
-            /* Diperkecil */
             width: 100%;
             transition: all 0.3s ease;
             display: flex;
@@ -281,7 +390,6 @@
             padding: 10px 0;
             border-bottom: 1px solid #f1f5f9;
             font-size: 0.9rem;
-            /* Diperkecil */
         }
 
         .job-details-list li:last-child {
@@ -306,7 +414,6 @@
             margin-bottom: 20px;
             color: #2d3748;
             font-size: 1.3rem;
-            /* Diperkecil */
         }
 
         .job-card {
@@ -319,9 +426,14 @@
             height: 100%;
             border: 1px solid #f0f2f5;
             margin-bottom: 15px;
+            text-decoration: none;
+            display: block;
+            color: inherit;
         }
 
         .job-card:hover {
+            text-decoration: none;
+            color: inherit;
             transform: translateY(-3px);
             box-shadow: var(--hover-shadow);
         }
@@ -334,9 +446,7 @@
 
         .job-logo {
             width: 45px;
-            /* Diperkecil */
             height: 45px;
-            /* Diperkecil */
             border-radius: 6px;
             object-fit: cover;
             margin-right: 12px;
@@ -348,7 +458,6 @@
         .job-info h4 {
             margin: 0 0 4px;
             font-size: 16px;
-            /* Diperkecil */
             color: #2d3748;
         }
 
@@ -356,7 +465,6 @@
             margin: 0 0 8px;
             color: #6c757d;
             font-size: 0.85rem;
-            /* Diperkecil */
         }
 
         .job-meta {
@@ -371,14 +479,12 @@
             align-items: center;
             color: #6c757d;
             font-size: 0.8rem;
-            /* Diperkecil */
         }
 
         .job-meta i {
             margin-right: 4px;
             color: #a0aec0;
             font-size: 0.85rem;
-            /* Diperkecil */
         }
 
         .job-salary {
@@ -386,7 +492,6 @@
             color: #2563eb;
             margin: 8px 0;
             font-size: 0.9rem;
-            /* Diperkecil */
         }
 
         .job-footer {
@@ -400,7 +505,6 @@
 
         .posted-time {
             font-size: 0.75rem;
-            /* Diperkecil */
             color: #94a3b8;
         }
 
@@ -408,7 +512,6 @@
             padding: 3px 8px;
             border-radius: 4px;
             font-size: 0.7rem;
-            /* Diperkecil */
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -432,7 +535,6 @@
         @media (max-width: 768px) {
             .job-detail-header h1 {
                 font-size: 1.5rem;
-                /* Diperkecil untuk mobile */
             }
 
             .job-meta-info {
@@ -441,7 +543,6 @@
 
             .job-meta-item {
                 font-size: 0.8rem;
-                /* Diperkecil untuk mobile */
                 padding: 5px 10px;
             }
 
@@ -467,67 +568,27 @@
 </head>
 
 <body>
-    <!-- Header Section Start -->
-    <header id="home" class="hero-area">
-        <!-- Navbar Start -->
-        <nav class="navbar navbar-expand-lg fixed-top scrolling-navbar">
-            <div class="container">
-                <div class="theme-header clearfix">
-                    <!-- Brand and toggle get grouped for better mobile display -->
-                    <div class="navbar-header">
-                        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#main-navbar"
-                            aria-controls="main-navbar" aria-expanded="false" aria-label="Toggle navigation">
-                            <span class="navbar-toggler-icon"></span>
-                            <span class="lni-menu"></span>
-                            <span class="lni-menu"></span>
-                            <span class="lni-menu"></span>
-                        </button>
-                        <a href="index.php" class="navbar-brand"><img src="assets/img/icon-linkup.png" alt="" /></a>
-                    </div>
-                    <div class="collapse navbar-collapse" id="main-navbar">
-                        <ul class="navbar-nav mr-auto w-100 justify-content-end">
-                            <li class="nav-item">
-                                <a class="nav-link" href="index.php"> Cari Lowongan </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="perusahaan.php">
-                                    Jelajahi Perusahaan
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="statuslamaran.php"> Status Lamaran </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="login.php">Masuk</a>
-                            </li>
-                            <li class="button-group">
-                                <a href="index.php" class="button btn btn-common">Untuk Perusahaan</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="mobile-menu" data-logo="assets/img/icon-linkup.png"></div>
-        </nav>
-        <!-- Navbar End -->
-    </header>
-    <!-- Header Section End -->
+    <!-- ===== Header Start ===== -->
+    <?php include("header.php") ?>
+    <!-- ===== Header End ===== -->
 
     <div class="job-detail-header">
         <div class="container">
             <div class="inner-header">
-                <h1>[judul_lowongan]</h1>
-                <p>[nama_perusahaan] - [kota_lowongan]</p>
+                <h1><?php echo htmlspecialchars($job['judul_lowongan']); ?></h1>
+                <p><?php echo htmlspecialchars($job['nama_perusahaan']); ?> -
+                    <?php echo htmlspecialchars($job['nama_kota'] ?: 'Indonesia'); ?>
+                </p>
 
                 <div class="job-meta-info">
                     <div class="job-meta-item">
-                        <i class="lni-briefcase"></i> [waktukerja]
+                        <i class="lni-briefcase"></i> <?php echo htmlspecialchars($job['nama_jenis']); ?>
                     </div>
                     <div class="job-meta-item">
-                        <i class="lni-coin"></i> [gaji]
+                        <i class="lni-coin"></i> <?php echo formatSalary($job['gaji_lowongan']); ?>
                     </div>
                     <div class="job-meta-item">
-                        <i class="lni-timer"></i> Diposting [tanggal_posting]
+                        <i class="lni-timer"></i> Diposting <?php echo timeAgo($job['tanggal_posting']); ?>
                     </div>
                 </div>
             </div>
@@ -543,47 +604,51 @@
                     <div class="job-main-content">
                         <h3>Deskripsi Pekerjaan</h3>
                         <div class="job-description">
-                            <p>[deskripsi_lowongan]</p>
+                            <?php echo nl2br(htmlspecialchars($job['deskripsi_lowongan'])); ?>
                         </div>
 
-                        <div class="job-requirements">
-                            <h4>Kualifikasi yang Dibutuhkan:</h4>
-                            <ul>
-                                <li>[kualifikasi1]</li>
-                                <li>[kualifikasi2]</li>
-                                <li>[kualifikasi3]</li>
-                                <li>[kualifikasi4]</li>
-                                <li>[kualifikasi5]</li>
-                                <li>[kualifikasi6]</li>
-                            </ul>
-                        </div>
+                        <?php if (count($kualifikasi_list) > 0): ?>
+                            <div class="job-requirements">
+                                <h4>Kualifikasi yang Dibutuhkan:</h4>
+                                <ul>
+                                    <?php foreach ($kualifikasi_list as $item): ?>
+                                        <li><?php echo htmlspecialchars($item); ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php endif; ?>
 
-                        <div class="job-benefits">
-                            <h4>Pertanyaan dari Perusahaan:</h4>
-                            <ul>
-                                <li>[pertanyaan1]</li>
-                                <li>[pertanyaan2]</li>
-                                <li>[pertanyaan3]</li>
-                                <li>[pertanyaan4]</li>
-                                <li>[pertanyaan5]</li>
-                                <li>[pertanyaan6]</li>
-                            </ul>
-                        </div>
+                        <?php if (count($pertanyaan_list) > 0): ?>
+                            <div class="job-benefits">
+                                <h4>Pertanyaan dari Perusahaan:</h4>
+                                <ul>
+                                    <?php foreach ($pertanyaan_list as $item): ?>
+                                        <li><?php echo htmlspecialchars($item); ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
                 <!-- Job Sidebar -->
                 <div class="col-lg-4 col-md-5">
                     <div class="job-sidebar">
-                        <div class="company-info">
-                            <img src="assets/img/product/img3.png" alt="Company Logo" class="company-logo" />
-                            <h3 class="company-name">[nama_perusahaan]</h3>
-                            <p>[deskripsi_perusahaan]</p>
-                        </div>
+                        <a href="company-details.php?id=<?php echo $job['id_perusahaan']; ?>"
+                            style="text-decoration: none; color: inherit;">
+                            <div class="company-info">
+                                <img src="adminpanel/src/images/company/<?php echo htmlspecialchars($logo_display); ?>"
+                                    alt="Company Logo" class="company-logo" />
+                                <h3 class="company-name"><?php echo htmlspecialchars($job['nama_perusahaan']); ?></h3>
+                                <p><?php echo htmlspecialchars(substr($job['deskripsi_perusahaan'] ?? '', 0, 100)) . (strlen($job['deskripsi_perusahaan'] ?? '') > 100 ? '...' : ''); ?>
+                                </p>
+                            </div>
+                        </a>
 
                         <div class="job-actions">
-                            <button class="btn-apply">Lamar Sekarang</button>
-                            <button class="btn-save" id="saveJobBtn">
+                            <button class="btn-apply" onclick="applyJob(<?php echo $job['id_lowongan']; ?>)">Lamar
+                                Sekarang</button>
+                            <button class="btn-save" id="saveJobBtn" data-job-id="<?php echo $job['id_lowongan']; ?>">
                                 <i class="lni-heart"></i> Simpan Lowongan
                             </button>
                         </div>
@@ -591,33 +656,73 @@
                         <ul class="job-details-list">
                             <li>
                                 <span class="detail-label">Lokasi</span>
-                                <span class="detail-value">[lokasi]</span>
+                                <span
+                                    class="detail-value"><?php echo htmlspecialchars($job['nama_kota'] ?: 'Indonesia'); ?></span>
                             </li>
                             <li>
                                 <span class="detail-label">Tipe Pekerjaan</span>
-                                <span class="detail-value">[waktukerja]</span>
+                                <span class="detail-value"><?php echo htmlspecialchars($job['nama_jenis']); ?></span>
                             </li>
                             <li>
                                 <span class="detail-label">Gaji</span>
-                                <span class="detail-value">[gaji]</span>
+                                <span class="detail-value"><?php echo formatSalary($job['gaji_lowongan']); ?></span>
                             </li>
                             <li>
                                 <span class="detail-label">Kategori</span>
-                                <span class="detail-value">[kategori]</span>
+                                <span class="detail-value"><?php echo htmlspecialchars($job['nama_kategori']); ?></span>
                             </li>
                             <li>
                                 <span class="detail-label">Diposting</span>
-                                <span class="detail-value">[tanggal_posting]</span>
+                                <span class="detail-value"><?php echo formatDate($job['tanggal_posting']); ?></span>
                             </li>
                             <li>
                                 <span class="detail-label">Berakhir</span>
-                                <span class="detail-value">[tanggal_tutup]</span>
+                                <span class="detail-value"><?php echo formatDate($job['tanggal_tutup']); ?></span>
                             </li>
                         </ul>
                     </div>
-
                 </div>
             </div>
+
+            <!-- Similar Jobs Section -->
+            <?php if (count($similar_jobs) > 0): ?>
+                <div class="similar-jobs">
+                    <h3>Lowongan Serupa</h3>
+                    <div class="row">
+                        <?php foreach ($similar_jobs as $similar): ?>
+                            <div class="col-lg-4 col-md-6">
+                                <a href="job-detail.php?id=<?php echo $similar['id_lowongan']; ?>" class="job-card">
+                                    <div class="job-header">
+                                        <img src="adminpanel/src/images/jobs/<?php echo $similar['gambar'] ?: 'img1.png'; ?>"
+                                            alt="Company Logo" class="job-logo" />
+                                        <div class="job-info">
+                                            <h4><?php echo htmlspecialchars($similar['judul_lowongan']); ?></h4>
+                                            <p><?php echo htmlspecialchars($similar['nama_perusahaan']); ?></p>
+                                        </div>
+                                    </div>
+                                    <div class="job-meta">
+                                        <span><i class="lni-map-marker"></i>
+                                            <?php echo htmlspecialchars($similar['nama_kota'] ?: 'Indonesia'); ?></span>
+                                        <span><i class="lni-briefcase"></i>
+                                            <?php echo htmlspecialchars($similar['nama_jenis']); ?></span>
+                                    </div>
+                                    <div class="job-salary">
+                                        <?php echo formatSalary($similar['gaji_lowongan']); ?>
+                                    </div>
+                                    <div class="job-footer">
+                                        <span
+                                            class="job-tag <?php echo strtolower(str_replace([' ', '/'], '', $similar['nama_jenis'])); ?>">
+                                            <?php echo htmlspecialchars($similar['nama_jenis']); ?>
+                                        </span>
+                                        <span class="posted-time"><i class="lni-timer"></i>
+                                            <?php echo timeAgo($similar['tanggal_posting']); ?></span>
+                                    </div>
+                                </a>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </section>
 
@@ -635,8 +740,7 @@
                             <div class="textwidget">
                                 <p>
                                     Platform yang menghubungkan pencari kerja berbakat dengan perusahaan terbaik.
-                                    Temukan karier impian
-                                    Anda sekarang.
+                                    Temukan karier impian Anda sekarang.
                                 </p>
                             </div>
                         </div>
@@ -646,7 +750,7 @@
                             <h3 class="block-title">Quick Links</h3>
                             <ul class="menu">
                                 <li><a href="index.php">Cari Lowongan</a></li>
-                                <li><a href="perusahaan.php">Perusahaan</a></li>
+                                <li><a href="jelajahi-perusahaan.php">Perusahaan</a></li>
                                 <li><a href="statuslamaran.php">Status Lamaran</a></li>
                             </ul>
                             <ul class="menu">
@@ -705,94 +809,113 @@
         // Save Job Functionality
         document.addEventListener('DOMContentLoaded', function () {
             const saveJobBtn = document.getElementById('saveJobBtn');
-            const savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
-            const currentJobId = 1; // ID pekerjaan saat ini
+            const currentJobId = saveJobBtn ? saveJobBtn.getAttribute('data-job-id') : null;
 
-            // Check if job is already saved
-            if (savedJobs.includes(currentJobId)) {
-                saveJobBtn.classList.add('saved');
-                saveJobBtn.innerHTML = '<i class="lni-heart-filled"></i> Disimpan';
-            }
+            if (saveJobBtn && currentJobId) {
+                // Load saved jobs from localStorage
+                let savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
 
-            // Save job functionality
-            saveJobBtn.addEventListener('click', function () {
-                const savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
-                const jobIndex = savedJobs.indexOf(currentJobId);
-
-                if (jobIndex === -1) {
-                    // Save job
-                    savedJobs.push(currentJobId);
-                    this.classList.add('saved');
-                    this.innerHTML = '<i class="lni-heart-filled"></i> Disimpan';
-                    showNotification('Lowongan berhasil disimpan', 'success');
-                } else {
-                    // Unsave job
-                    savedJobs.splice(jobIndex, 1);
-                    this.classList.remove('saved');
-                    this.innerHTML = '<i class="lni-heart"></i> Simpan Lowongan';
-                    showNotification('Lowongan dihapus dari daftar simpan', 'info');
+                // Check if job is already saved
+                const isSaved = savedJobs.some(job => job.id === currentJobId);
+                if (isSaved) {
+                    saveJobBtn.classList.add('saved');
+                    saveJobBtn.innerHTML = '<i class="lni-heart-filled"></i> Disimpan';
                 }
 
-                // Update localStorage
-                localStorage.setItem('savedJobs', JSON.stringify(savedJobs));
-            });
+                // Save job functionality
+                saveJobBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
 
-            // Apply button functionality
-            document.querySelector('.btn-apply').addEventListener('click', function () {
-                // Check if user is logged in
-                const isLoggedIn = false; // This should be replaced with actual authentication check
+                    // Get job data
+                    const jobData = {
+                        id: currentJobId,
+                        title: '<?php echo addslashes($job['judul_lowongan']); ?>',
+                        company: '<?php echo addslashes($job['nama_perusahaan']); ?>',
+                        location: '<?php echo addslashes($job['nama_kota']); ?>',
+                        type: '<?php echo addslashes($job['nama_jenis']); ?>',
+                        salary: '<?php echo addslashes(formatSalary($job['gaji_lowongan'])); ?>',
+                        image: 'adminpanel/src/images/jobs/<?php echo $job['gambar'] ?: 'img1.png'; ?>',
+                        link: 'job-detail.php?id=' + currentJobId,
+                        savedDate: new Date().toLocaleDateString('id-ID')
+                    };
 
-                if (!isLoggedIn) {
-                    showNotification('Silakan login terlebih dahulu untuk melamar', 'info');
-                    setTimeout(() => {
-                        window.location.href = 'login.php';
-                    }, 2000);
-                } else {
-                    showNotification('Mengarahkan ke halaman lamaran...', 'success');
-                    // In real implementation, redirect to application page
-                }
-            });
+                    let savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+                    const jobIndex = savedJobs.findIndex(job => job.id === currentJobId);
 
-            // Notification function
-            function showNotification(message, type = 'info') {
-                // Create notification element
-                const notification = document.createElement('div');
-                notification.className = `notification ${type}`;
-                notification.textContent = message;
-                notification.style.cssText = `
-                    position: fixed;
-                    bottom: 20px;
-                    right: 20px;
-                    background: ${type === 'success' ? '#1cc88a' : type === 'info' ? '#36b9cc' : '#4e73df'};
-                    color: white;
-                    padding: 10px 20px;
-                    border-radius: 5px;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                    transform: translateY(100px);
-                    opacity: 0;
-                    transition: all 0.3s ease;
-                    z-index: 1000;
-                    font-size: 0.9rem;
-                `;
+                    if (jobIndex === -1) {
+                        // Save job
+                        savedJobs.push(jobData);
+                        this.classList.add('saved');
+                        this.innerHTML = '<i class="lni-heart-filled"></i> Disimpan';
+                        showNotification('Lowongan berhasil disimpan', 'success');
+                    } else {
+                        // Unsave job
+                        savedJobs.splice(jobIndex, 1);
+                        this.classList.remove('saved');
+                        this.innerHTML = '<i class="lni-heart"></i> Simpan Lowongan';
+                        showNotification('Lowongan dihapus dari daftar simpan', 'info');
+                    }
 
-                document.body.appendChild(notification);
-
-                // Show notification
-                setTimeout(() => {
-                    notification.style.transform = 'translateY(0)';
-                    notification.style.opacity = '1';
-                }, 10);
-
-                // Hide notification after 3 seconds
-                setTimeout(() => {
-                    notification.style.transform = 'translateY(100px)';
-                    notification.style.opacity = '0';
-                    setTimeout(() => {
-                        notification.remove();
-                    }, 300);
-                }, 3000);
+                    // Update localStorage
+                    localStorage.setItem('savedJobs', JSON.stringify(savedJobs));
+                });
             }
         });
+
+        // Apply button functionality
+        function applyJob(jobId) {
+            // Check if user is logged in
+            <?php if (isset($_SESSION['user_id'])): ?>
+                // User is logged in, redirect to application page
+                window.location.href = 'lamar-pekerjaan.php?id=' + jobId;
+            <?php else: ?>
+                // User is not logged in, show notification and redirect to login
+                showNotification('Silakan login terlebih dahulu untuk melamar', 'info');
+                setTimeout(function () {
+                    window.location.href = 'login.php?redirect=job-detail.php?id=' + jobId;
+                }, 2000);
+            <?php endif; ?>
+        }
+
+        // Notification function
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#1cc88a' : type === 'info' ? '#36b9cc' : '#4e73df'};
+                color: white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                transform: translateY(100px);
+                opacity: 0;
+                transition: all 0.3s ease;
+                z-index: 1000;
+                font-size: 0.9rem;
+            `;
+
+            document.body.appendChild(notification);
+
+            // Show notification
+            setTimeout(() => {
+                notification.style.transform = 'translateY(0)';
+                notification.style.opacity = '1';
+            }, 10);
+
+            // Hide notification after 3 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateY(100px)';
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
     </script>
 </body>
 

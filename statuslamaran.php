@@ -1,3 +1,26 @@
+<?php
+session_start();
+include 'config/database.php';
+$db = new database();
+
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit();
+}
+
+// Get user ID from session
+$user_id = $_SESSION['user_id'];
+
+// Get user application statistics
+$app_stats = $db->get_user_application_stats($user_id);
+
+// Get user applications
+$applications = $db->get_user_applications($user_id);
+
+// Get saved jobs (from localStorage simulation)
+$saved_jobs = $db->get_saved_jobs($user_id);
+?>
 <!DOCTYPE html>
 <html lang="id">
 
@@ -11,7 +34,7 @@
     <title>LinkUp - Status Lamaran</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="assets/img/icon-linkup2.png">
+    <link rel="icon" type="image/png" href="assets/img/favicon.png">
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="assets/css/bootstrap.min.css" />
@@ -48,11 +71,10 @@
         .page-header {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             padding: 60px 0 40px;
-            margin-top: 60px;
+            margin-top: 70px;
             color: white;
             position: relative;
             overflow: hidden;
-            margin-bottom: 0px;
         }
 
         .page-header::before {
@@ -304,7 +326,30 @@
             color: white;
             font-weight: bold;
             font-size: 20px;
-            box-shadow: 0 4px 12px rgba(61, 142, 255, 0.3);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .company-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        /* Specific styling for saved jobs - smaller images */
+        #saved-jobs-container .company-logo {
+            width: 45px;
+            height: 45px;
+            margin-right: 15px;
+            border-radius: 8px;
+        }
+
+        #saved-jobs-container .company-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
         }
 
         .job-info {
@@ -639,56 +684,13 @@
             .status-info-desc {
                 padding-left: 0;
             }
-        }
     </style>
 </head>
 
 <body>
-    <!-- Header Section Start -->
-    <header id="home" class="hero-area">
-        <!-- Navbar Start -->
-        <nav class="navbar navbar-expand-lg fixed-top scrolling-navbar">
-            <div class="container">
-                <div class="theme-header clearfix">
-                    <!-- Brand and toggle get grouped for better mobile display -->
-                    <div class="navbar-header">
-                        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#main-navbar"
-                            aria-controls="main-navbar" aria-expanded="false" aria-label="Toggle navigation">
-                            <span class="navbar-toggler-icon"></span>
-                            <span class="lni-menu"></span>
-                            <span class="lni-menu"></span>
-                            <span class="lni-menu"></span>
-                        </button>
-                        <a href="index.php" class="navbar-brand"><img src="assets/img/icon-linkup.png" alt="" /></a>
-                    </div>
-                    <div class="collapse navbar-collapse" id="main-navbar">
-                        <ul class="navbar-nav mr-auto w-100 justify-content-end">
-                            <li class="nav-item">
-                                <a class="nav-link" href="index.php"> Cari Lowongan </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="perusahaan.php">
-                                    Jelajahi Perusahaan
-                                </a>
-                            </li>
-                            <li class="nav-item active">
-                                <a class="nav-link" href="statuslamaran.php"> Status Lamaran </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="login.php">Masuk</a>
-                            </li>
-                            <li class="button-group">
-                                <a href="post-job.php" class="button btn btn-common">Untuk Perusahaan</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="mobile-menu" data-logo="assets/img/icon-linkup.png"></div>
-        </nav>
-        <!-- Navbar End -->
-    </header>
-    <!-- Header Section End -->
+    <!-- ===== Header Start ===== -->
+    <?php include("header.php") ?>
+    <!-- ===== Header End ===== -->
 
     <!-- Page Header Start -->
     <div class="page-header">
@@ -711,25 +713,33 @@
             <div class="row">
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-card">
-                        <div class="stat-number">12</div>
+                        <div class="stat-number">
+                            <?php echo $app_stats['total']; ?>
+                        </div>
                         <div class="stat-label">Total Lamaran</div>
                     </div>
                 </div>
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-card">
-                        <div class="stat-number">5</div>
+                        <div class="stat-number">
+                            <?php echo $app_stats['diproses']; ?>
+                        </div>
                         <div class="stat-label">Dalam Proses</div>
                     </div>
                 </div>
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-card">
-                        <div class="stat-number">3</div>
+                        <div class="stat-number">
+                            <?php echo $app_stats['diterima']; ?>
+                        </div>
                         <div class="stat-label">Direkrut</div>
                     </div>
                 </div>
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-card">
-                        <div class="stat-number">4</div>
+                        <div class="stat-number">
+                            <?php echo $app_stats['ditolak']; ?>
+                        </div>
                         <div class="stat-label">Ditolak</div>
                     </div>
                 </div>
@@ -751,13 +761,14 @@
                         <!-- Tersimpan Tab Content -->
                         <div class="status-content">
                             <div class="tab-pane active" id="tersimpan-content">
-                                <div class="empty-state">
-                                    <div class="empty-state-icon">
-                                        <i class="lni-bookmark"></i>
+                                <div id="saved-jobs-container">
+                                    <div class="empty-state">
+                                        <div class="empty-state-icon">
+                                            <i class="lni-bookmark"></i>
+                                        </div>
+                                        <h4>Memuat lowongan tersimpan...</h4>
+                                        <p>Lowongan yang Anda simpan akan tampil di sini.</p>
                                     </div>
-                                    <h4>Belum ada lowongan yang disimpan</h4>
-                                    <p>Simpan lowongan kerja yang Anda minati sehingga bisa dilihat lagi nanti.</p>
-                                    <a href="index.php" class="btn btn-common">Jelajahi Lowongan</a>
                                 </div>
                             </div>
 
@@ -777,113 +788,75 @@
 
                                 <!-- Application Cards -->
                                 <div class="p-4" id="application-list">
-                                    <!-- Application Card 1 -->
-                                    <div class="application-card" data-status="diproses">
-                                        <div class="application-header">
-                                            <div class="d-flex align-items-start">
-                                                <div class="company-logo">
-                                                    <i class="lni-cogs"></i>
+                                    <?php if (!empty($applications)): ?>
+                                        <?php foreach ($applications as $application): ?>
+                                            <div class="application-card"
+                                                data-status="<?php echo strtolower($application['status_lamaran']); ?>">
+                                                <div class="application-header">
+                                                    <div class="d-flex align-items-start">
+                                                        <div class="company-logo">
+                                                            <?php if ($application['gambar']): ?>
+                                                                <img src="adminpanel/src/images/jobs/<?php echo htmlspecialchars($application['gambar']); ?>"
+                                                                    alt="<?php echo htmlspecialchars($application['nama_perusahaan']); ?>" />
+                                                            <?php elseif ($application['logo_perusahaan']): ?>
+                                                                <img src="adminpanel/src/images/perusahaan/<?php echo htmlspecialchars($application['logo_perusahaan']); ?>"
+                                                                    alt="<?php echo htmlspecialchars($application['nama_perusahaan']); ?>" />
+                                                            <?php else: ?>
+                                                                <i class="lni-briefcase"></i>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        <div class="job-info">
+                                                            <h3 class="job-title">
+                                                                <?php echo htmlspecialchars($application['judul_lowongan']); ?>
+                                                            </h3>
+                                                            <p class="company-name">
+                                                                <?php echo htmlspecialchars($application['nama_perusahaan']); ?>
+                                                            </p>
+                                                            <div class="job-meta">
+                                                                <span class="meta-item">
+                                                                    <i class="lni-map-marker"></i>
+                                                                    <?php echo htmlspecialchars($application['nama_kota'] ?: 'Indonesia'); ?>
+                                                                </span>
+                                                                <span class="meta-item">
+                                                                    <i class="lni-briefcase"></i> Full-time
+                                                                </span>
+                                                                <span class="meta-item">
+                                                                    <i class="lni-money-protection"></i>
+                                                                    <?php echo $application['gaji_lowongan'] ? 'Rp ' . number_format($application['gaji_lowongan'], 0, ',', '.') : 'Negosiasi'; ?>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <span
+                                                        class="status-badge status-<?php echo strtolower($application['status_lamaran']); ?>">
+                                                        <?php echo htmlspecialchars($application['status_lamaran']); ?>
+                                                    </span>
                                                 </div>
-                                                <div class="job-info">
-                                                    <h3 class="job-title">Frontend Developer</h3>
-                                                    <p class="company-name">Tech Solutions Inc.</p>
-                                                    <div class="job-meta">
-                                                        <span class="meta-item">
-                                                            <i class="lni-map-marker"></i> Jakarta
-                                                        </span>
-                                                        <span class="meta-item">
-                                                            <i class="lni-briefcase"></i> Full-time
-                                                        </span>
-                                                        <span class="meta-item">
-                                                            <i class="lni-money-protection"></i> Rp 12-18 Juta
-                                                        </span>
+                                                <div class="application-footer">
+                                                    <div class="application-date">
+                                                        <i class="lni-timer"></i> Dilamar pada
+                                                        <?php echo date('d F Y', strtotime($application['tanggal_lamar'])); ?>
+                                                    </div>
+                                                    <div class="application-actions">
+                                                        <a href="job-detail.php?id=<?php echo $application['id_lowongan']; ?>"
+                                                            class="action-btn">Lihat Detail</a>
+                                                        <button class="action-btn"
+                                                            onclick="deleteApplication(<?php echo $application['id_lamaran']; ?>)">Hapus</button>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <span class="status-badge status-diproses">Diproses</span>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <div class="empty-state">
+                                            <div class="empty-state-icon">
+                                                <i class="lni-briefcase"></i>
+                                            </div>
+                                            <h4>Belum ada lamaran</h4>
+                                            <p>Anda belum melamar pekerjaan apapun. Mulai jelajahi lowongan dan lamar
+                                                sekarang!</p>
+                                            <a href="index.php" class="btn btn-common">Jelajahi Lowongan</a>
                                         </div>
-                                        <div class="application-footer">
-                                            <div class="application-date">
-                                                <i class="lni-timer"></i> Dilamar pada 15 Oktober 2023
-                                            </div>
-                                            <div class="application-actions">
-                                                <button class="action-btn">Lihat Detail</button>
-                                                <button class="action-btn">Hapus</button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Application Card 2 -->
-                                    <div class="application-card" data-status="dikirim">
-                                        <div class="application-header">
-                                            <div class="d-flex align-items-start">
-                                                <div class="company-logo">
-                                                    <i class="lni-layout"></i>
-                                                </div>
-                                                <div class="job-info">
-                                                    <h3 class="job-title">UI/UX Designer</h3>
-                                                    <p class="company-name">Creative Studio</p>
-                                                    <div class="job-meta">
-                                                        <span class="meta-item">
-                                                            <i class="lni-map-marker"></i> Bandung
-                                                        </span>
-                                                        <span class="meta-item">
-                                                            <i class="lni-briefcase"></i> Full-time
-                                                        </span>
-                                                        <span class="meta-item">
-                                                            <i class="lni-money-protection"></i> Rp 10-15 Juta
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <span class="status-badge status-dikirim">Dikirim</span>
-                                        </div>
-                                        <div class="application-footer">
-                                            <div class="application-date">
-                                                <i class="lni-timer"></i> Dilamar pada 12 Oktober 2023
-                                            </div>
-                                            <div class="application-actions">
-                                                <button class="action-btn">Lihat Detail</button>
-                                                <button class="action-btn">Hapus</button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Application Card 3 -->
-                                    <div class="application-card" data-status="direkrut">
-                                        <div class="application-header">
-                                            <div class="d-flex align-items-start">
-                                                <div class="company-logo">
-                                                    <i class="lni-database"></i>
-                                                </div>
-                                                <div class="job-info">
-                                                    <h3 class="job-title">Backend Developer</h3>
-                                                    <p class="company-name">Data Systems Ltd.</p>
-                                                    <div class="job-meta">
-                                                        <span class="meta-item">
-                                                            <i class="lni-map-marker"></i> Surabaya
-                                                        </span>
-                                                        <span class="meta-item">
-                                                            <i class="lni-briefcase"></i> Full-time
-                                                        </span>
-                                                        <span class="meta-item">
-                                                            <i class="lni-money-protection"></i> Rp 15-20 Juta
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <span class="status-badge status-direkrut">Direkrut</span>
-                                        </div>
-                                        <div class="application-footer">
-                                            <div class="application-date">
-                                                <i class="lni-timer"></i> Dilamar pada 5 Oktober 2023
-                                            </div>
-                                            <div class="application-actions">
-                                                <button class="action-btn">Lihat Detail</button>
-                                                <button class="action-btn">Hapus</button>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <?php endif; ?>
                                 </div>
 
                                 <!-- Info Section -->
@@ -905,20 +878,22 @@
                                         </p>
                                     </div>
 
-                                    <!-- Login Reminder -->
-                                    <div class="login-reminder">
-                                        <div class="login-content">
-                                            <div class="login-icon">
-                                                <i class="lni-user"></i>
+                                    <!-- Login Reminder - Hanya tampil jika belum login -->
+                                    <?php if (!isset($_SESSION['user_id'])): ?>
+                                        <div class="login-reminder">
+                                            <div class="login-content">
+                                                <div class="login-icon">
+                                                    <i class="lni-user"></i>
+                                                </div>
+                                                <div class="login-text">
+                                                    <h5>Masuk untuk melamar dan menyimpan pekerjaan</h5>
+                                                    <p>Anda perlu masuk ke akun Anda untuk dapat melamar pekerjaan dan
+                                                        menyimpan lowongan yang menarik.</p>
+                                                </div>
+                                                <a href="login.php" class="btn btn-outline-light">Masuk Sekarang</a>
                                             </div>
-                                            <div class="login-text">
-                                                <h5>Masuk untuk melamar dan menyimpan pekerjaan</h5>
-                                                <p>Anda perlu masuk ke akun Anda untuk dapat melamar pekerjaan dan
-                                                    menyimpan lowongan yang menarik.</p>
-                                            </div>
-                                            <a href="login.php" class="btn btn-outline-light">Masuk Sekarang</a>
                                         </div>
-                                    </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -954,7 +929,7 @@
                             <h3 class="block-title">Quick Links</h3>
                             <ul class="menu">
                                 <li><a href="index.php">Cari Lowongan</a></li>
-                                <li><a href="perusahaan.php">Perusahaan</a></li>
+                                <li><a href="jelajahi-perusahaan.php">Perusahaan</a></li>
                                 <li><a href="statuslamaran.php">Status Lamaran</a></li>
                             </ul>
                             <ul class="menu">
@@ -1073,6 +1048,85 @@
 
     <script>
         $(document).ready(function () {
+            // Load saved jobs from localStorage
+            function loadSavedJobs() {
+                const savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+                const container = $('#saved-jobs-container');
+
+                if (savedJobs.length === 0) {
+                    container.html(`
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="lni-bookmark"></i>
+                            </div>
+                            <h4>Belum ada lowongan yang disimpan</h4>
+                            <p>Simpan lowongan kerja yang Anda minati sehingga bisa dilihat lagi nanti.</p>
+                            <a href="index.php" class="btn btn-common">Jelajahi Lowongan</a>
+                        </div>
+                    `);
+                } else {
+                    let jobsHtml = '';
+                    savedJobs.forEach(job => {
+                        // Handle undefined values
+                        const jobTitle = job.title || job.judul_lowongan || 'Tidak ada judul';
+                        const companyName = job.company || job.nama_perusahaan || 'Tidak ada perusahaan';
+                        const jobLocation = job.location || job.nama_kota || 'Indonesia';
+                        const jobType = job.type || job.nama_jenis || 'Full-time';
+                        const jobSalary = job.salary || job.gaji_lowongan || 'Negosiasi';
+                        const jobImage = job.image || job.gambar || 'assets/img/product/img1.png';
+                        const jobId = job.id || job.id_lowongan || Math.random().toString(36).substr(2, 9);
+                        const savedDate = job.savedDate || job.tanggal_simpan || 'Baru saja';
+
+                        jobsHtml += `
+                            <div class="application-card">
+                                <div class="application-header">
+                                    <div class="d-flex align-items-start">
+                                        <div class="company-logo">
+                                            <img src="${jobImage}" alt="${companyName}" 
+                                                 onerror="this.src='assets/img/product/img1.png'">
+                                        </div>
+                                        <div class="job-info">
+                                            <h3 class="job-title">${jobTitle}</h3>
+                                            <p class="company-name">${companyName}</p>
+                                            <div class="job-meta">
+                                                <span class="meta-item">
+                                                    <i class="lni-map-marker"></i> ${jobLocation}
+                                                </span>
+                                                <span class="meta-item">
+                                                    <i class="lni-briefcase"></i> ${jobType}
+                                                </span>
+                                                <span class="meta-item">
+                                                    <i class="lni-money-protection"></i> ${jobSalary}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge status-tersimpan">Tersimpan</span>
+                                </div>
+                                <div class="application-footer">
+                                    <div class="application-date">
+                                        <i class="lni-timer"></i> Disimpan pada ${savedDate}
+                                    </div>
+                                    <div class="application-actions">
+                                        <a href="job-detail.php?id=${jobId}" class="action-btn">Lihat Detail</a>
+                                        <button class="action-btn" onclick="removeSavedJob('${jobId}')">Hapus</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    container.html(jobsHtml);
+                }
+            }
+
+            // Remove saved job
+            window.removeSavedJob = function (jobId) {
+                let savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+                savedJobs = savedJobs.filter(job => job.id !== jobId);
+                localStorage.setItem('savedJobs', JSON.stringify(savedJobs));
+                loadSavedJobs(); // Reload the saved jobs
+            };
+
             // Tab switching functionality
             $('.status-tab').on('click', function () {
                 const tabId = $(this).data('tab');
@@ -1095,14 +1149,23 @@
                 $(this).addClass('active');
 
                 // Filter application cards
-                if (filter === 'all') {
-                    $('.application-card').show();
-                } else {
-                    $('.application-card').hide();
-                    $(`.application-card[data-status="${filter}"]`).show();
-                }
+                $('.application-card').each(function () {
+                    const cardStatus = $(this).data('status');
+                    if (filter === 'all' || cardStatus === filter) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
             });
 
+            // Load saved jobs on page load
+            loadSavedJobs();
+        });
+    </script>
+
+    <script>
+        $(document).ready(function () {
             // Back to top button
             $('.back-to-top').on('click', function (e) {
                 e.preventDefault();

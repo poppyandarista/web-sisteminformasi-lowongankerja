@@ -1,0 +1,33 @@
+<table border="1">
+        <thead>
+            <tr>
+                <th>ID Lowongan</th>
+                <th>Judul Lowongan</th>
+                <th>Kategori</th>
+                <th>Jenis Pekerjaan</th>
+                <th>Provinsi</th>
+                <th>Kota</th>
+                <th>Lokasi</th>
+                <th>Gaji</th>
+                <th>Kualifikasi</th>
+                <th>Deskripsi</th>
+                <th>Tanggal Posting</th>
+                <th>Tanggal Tutup</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody><tr>
+            <td>1</td>
+            <td>Web Design Developer</td>
+            <td>Teknologi Informasi (IT)</td>
+            <td>Internship</td>
+            <td>Jawa Timur</td>
+            <td>Kota Malang</td>
+            <td>Kantor PT Maju Jaya Teknologi, Surakarta</td>
+            <td>Rp 6.000.000</td>
+            <td>Menguasai HTML, CSS, JavaScript, PHP, dan MySQL</td>
+            <td>Mengembangkan dan memelihara website serta sistem internal perusahaan.</td>
+            <td>06/01/2026</td>
+            <td>10/02/2025</td>
+            <td>Aktif</td>
+        </tr></tbody></table>

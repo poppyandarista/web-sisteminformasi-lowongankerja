@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Hapus semua variabel sesi
 $_SESSION = array();
@@ -22,9 +24,8 @@ if (ini_get("session.use_cookies")) {
 }
 
 // Redirect ke halaman login dengan header anti-cache
-header("Cache-Control: no-cache, no-store, must-revalidate"); // HTTP 1.1.
-header("Pragma: no-cache"); // HTTP 1.0.
-header("Expires: 0"); // Proxies.
-header("Location: sign-in.php");
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+header("Location: signin.php");
 exit();
-?>

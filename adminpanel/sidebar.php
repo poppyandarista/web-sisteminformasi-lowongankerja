@@ -1,376 +1,331 @@
-<!-- sidenav  -->
-<?php
-$current_page = basename($_SERVER['PHP_SELF']);
-?>
-<aside
-    class="max-w-62.5 ease-nav-brand z-990 fixed inset-y-0 my-0 ml-4 block w-full -translate-x-full flex-wrap items-center justify-between overflow-y-auto rounded-2xl border-0 bg-white p-0 h-[calc(100vh-2rem)] antialiased shadow-none transition-transform duration-200 xl:left-0 xl:translate-x-0 xl:bg-transparent">
-    <div class="h-19.5">
-        <i class="absolute top-0 right-0 hidden p-4 opacity-50 cursor-pointer fas fa-times text-slate-400 xl:hidden"
-            sidenav-close></i>
-        <a class="block px-8 py-6 m-0 text-sm whitespace-nowrap text-slate-700" href="javascript:;" target="_blank">
-            <img src="build/assets/img/logo-notext.png"
-                class="inline h-full max-w-full transition-all duration-200 ease-nav-brand max-h-8" alt="main_logo" />
-            <span class="ml-1 font-semibold transition-all duration-200 ease-nav-brand">LinkUp</span>
-        </a>
-    </div>
+<head>
+  <link rel="icon" href="favicon.ico">
+  <link href="style.css" rel="stylesheet">
+</head>
+<aside :class="sidebarToggle ? 'translate-x-0 lg:w-[90px]' : '-translate-x-full'"
+  class="sidebar fixed left-0 top-0 z-9999 flex h-screen w-[290px] flex-col overflow-y-hidden border-r border-gray-200 bg-white px-5 duration-300 ease-linear dark:border-gray-800 dark:bg-black lg:static lg:translate-x-0"
+  @click.outside="sidebarToggle = false">
+  <!-- SIDEBAR HEADER -->
+  <div :class="sidebarToggle ? 'justify-center' : 'justify-between'"
+    class="sidebar-header flex items-center gap-2 pb-7 pt-8">
+    <a href="index.php">
+      <span class="logo" :class="sidebarToggle ? 'hidden' : ''">
+        <img class="dark:hidden w-24 h-8 object-contain" src="src/images/logo/logo2.png" alt="Logo" />
+        <img class="hidden dark:block w-24 h-8 object-contain" src="src/images/logo/logo2.png" alt="Logo" />
+      </span>
 
-    <hr class="h-px mt-0 bg-transparent bg-gradient-to-r from-transparent via-black/40 to-transparent" />
+      <img class="logo-icon w-10 h-4 object-contain" :class="sidebarToggle ? 'lg:block' : 'hidden'"
+        src="src/images/logo/logo2.png" alt="Logo" />
+    </a>
+  </div>
+  <!-- SIDEBAR HEADER -->
 
-    <div class="items-center block w-auto overflow-y-auto overflow-x-hidden h-[calc(100%-80px)]">
-        <ul class="flex flex-col pl-0 mb-0">
-            <li class="mt-0.5 w-full">
-                <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors <?php echo ($current_page == 'dashboard.php') ? 'bg-white shadow-soft-xl rounded-lg font-semibold text-slate-700' : 'text-slate-500'; ?>"
-                    href="dashboard.php">
-                    <div
-                        class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg text-center xl:p-2.5 <?php echo ($current_page == 'dashboard.php') ? 'bg-gradient-to-tl from-purple-700 to-pink-500' : 'bg-white'; ?>">
-                        <svg width="12px" height="12px" viewBox="0 0 45 40" version="1.1"
-                            xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                            <title>shop</title>
-                            <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                <g transform="translate(-1716.000000, -439.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                                    <g transform="translate(1716.000000, 291.000000)">
-                                        <g transform="translate(0.000000, 148.000000)">
-                                            <path
-                                                class="<?php echo ($current_page == 'dashboard.php') ? '!fill-white' : 'fill-slate-800 opacity-60'; ?>"
-                                                d="M46.7199583,10.7414583 L40.8449583,0.949791667 C40.4909749,0.360605034 39.8540131,0 39.1666667,0 L7.83333333,0 C7.1459869,0 6.50902508,0.360605034 6.15504167,0.949791667 L0.280041667,10.7414583 C0.0969176761,11.0460037 -1.23209662e-05,11.3946378 -1.23209662e-05,11.75 C-0.00758042603,16.0663731 3.48367543,19.5725301 7.80004167,19.5833333 L7.81570833,19.5833333 C9.75003686,19.5882688 11.6168794,18.8726691 13.0522917,17.5760417 C16.0171492,20.2556967 20.5292675,20.2556967 23.494125,17.5760417 C26.4604562,20.2616016 30.9794188,20.2616016 33.94575,17.5760417 C36.2421905,19.6477597 39.5441143,20.1708521 42.3684437,18.9103691 C45.1927731,17.649886 47.0084685,14.8428276 47.0000295,11.75 C47.0000295,11.3946378 46.9030823,11.0460037 46.7199583,10.7414583 Z">
-                                            </path>
-                                            <path
-                                                class="<?php echo ($current_page == 'dashboard.php') ? '!fill-white' : 'fill-slate-800'; ?>"
-                                                d="M39.198,22.4912623 C37.3776246,22.4928106 35.5817531,22.0149171 33.951625,21.0951667 L33.92225,21.1107282 C31.1430221,22.6838032 27.9255001,22.9318916 24.9844167,21.7998837 C24.4750389,21.605469 23.9777983,21.3722567 23.4960833,21.1018359 L23.4745417,21.1129513 C20.6961809,22.6871153 17.4786145,22.9344611 14.5386667,21.7998837 C14.029926,21.6054643 13.533337,21.3722507 13.0522917,21.1018359 C11.4250962,22.0190609 9.63246555,22.4947009 7.81570833,22.4912623 C7.16510551,22.4842162 6.51607673,22.4173045 5.875,22.2911849 L5.875,44.7220845 C5.875,45.9498589 6.7517757,46.9451667 7.83333333,46.9451667 L19.5833333,46.9451667 L19.5833333,33.6066734 L27.4166667,33.6066734 L27.4166667,46.9451667 L39.1666667,46.9451667 C40.2482243,46.9451667 41.125,45.9498589 41.125,44.7220845 L41.125,22.2822926 C40.4887822,22.4116582 39.8442868,22.4815492 39.198,22.4912623 Z M12.25,36.75 L7,36.75 L7,33.25 L12.25,33.25 L12.25,36.75 Z M12.25,29.75 L7,29.75 L7,26.25 L12.25,26.25 L12.25,29.75 Z M35,36.75 L29.75,36.75 L29.75,33.25 L35,33.25 L35,36.75 Z M35,29.75 L29.75,29.75 L29.75,26.25 L35,26.25 L35,29.75 Z M35,22.75 L29.75,22.75 L29.75,19.25 L35,19.25 L35,22.75 Z">
-                                            </path>
-                                        </g>
-                                    </g>
-                                </g>
-                            </g>
-                        </svg>
-                    </div>
-                    <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Dashboard</span>
-                </a>
-            </li>
+  <div class="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
+    <!-- Sidebar Menu -->
+    <nav x-data="{
+        selected: '', // HAPUS $persist DI SINI
+        currentPage: '',
+        hoveredItem: '',
+        
+        init() {
+          // Deteksi halaman saat ini dari URL
+          this.detectCurrentPage();
+          // Set selected berdasarkan halaman aktif
+          this.setSelectedFromPage();
+        },
+        
+        detectCurrentPage() {
+          const path = window.location.pathname;
+          if (path.includes('index.php')) this.currentPage = 'dashboard';
+          else if (path.includes('dataadmin.php')) this.currentPage = 'dataadmin';
+          else if (path.includes('dataperusahaan.php')) this.currentPage = 'dataperusahaan';
+          else if (path.includes('datapelamar.php')) this.currentPage = 'datapelamar';
+          else if (path.includes('datalowongan.php')) this.currentPage = 'datalowongan';
+          else if (path.includes('datalamaran.php')) this.currentPage = 'datalamaran';
+          else if (path.includes('datakategori.php')) this.currentPage = 'datakategori';
+          else if (path.includes('datajenis.php')) this.currentPage = 'datajenis';
+          else if (path.includes('datalokasi.php')) this.currentPage = 'datalokasi';
+          else if (path.includes('form-elements.php')) this.currentPage = 'formElements';
+          else if (path.includes('calendar.php')) this.currentPage = 'calendar';
+          else this.currentPage = '';
+        },
+        
+        setSelectedFromPage() {
+          // Reset selected terlebih dahulu
+          this.selected = '';
+          
+          // Jika halaman termasuk dalam Data Master
+          if (['datakategori', 'datajenis', 'datalokasi', 'dataperusahaan', 'datapelamar'].includes(this.currentPage)) {
+            this.selected = 'data-master';
+          }
+          // Jika halaman termasuk dalam Rekrutmen
+          else if (['datalowongan', 'datalamaran'].includes(this.currentPage)) {
+            this.selected = 'rekrutmen';
+          }
+          // Jika halaman termasuk dalam Manajemen Pengguna
+          else if (['dataadmin'].includes(this.currentPage)) {
+            this.selected = 'manajemen-pengguna';
+          }
+        },
+        
+        // Helper functions untuk kondisi
+        isManajemenPenggunaPage() {
+          return ['dataadmin'].includes(this.currentPage);
+        },
+        
+        isRekrutmenPage() {
+          return ['datalowongan', 'datalamaran'].includes(this.currentPage);
+        },
+        
+        isDataMasterPage() {
+          return ['datakategori', 'datajenis', 'datalokasi', 'dataperusahaan', 'datapelamar'].includes(this.currentPage);
+        },
+        
+        isActiveSubmenu(submenu) {
+          return this.currentPage === submenu;
+        },
+        
+        // Fungsi untuk hover effect
+        setHovered(item) {
+          this.hoveredItem = item;
+        },
+        
+        clearHovered() {
+          this.hoveredItem = '';
+        },
+        
+        isHovered(item) {
+          return this.hoveredItem === item;
+        },
+        
+        // Fungsi untuk toggle dropdown dengan ID unik
+        toggleDropdown(dropdownId) {
+          if (this.selected === dropdownId) {
+            this.selected = '';
+          } else {
+            this.selected = dropdownId;
+          }
+        },
+        
+        isDropdownOpen(dropdownId) {
+          return this.selected === dropdownId;
+        }
+      }">
+      <!-- Menu Group -->
+      <div>
+        <h3 class="mb-4 text-xs uppercase leading-[20px] text-gray-400">
+          <span class="menu-group-title" :class="sidebarToggle ? 'lg:hidden' : ''">
+            MENU
+          </span>
 
-            <li class="w-full mt-4">
-                <h6 class="pl-6 ml-2 font-bold leading-tight uppercase text-xs opacity-60">
-                    Manajemen Pengguna
-                </h6>
-            </li>
+          <svg :class="sidebarToggle ? 'lg:block hidden' : 'hidden'" class="menu-group-icon mx-auto fill-current"
+            width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" clip-rule="evenodd"
+              d="M5.99915 10.2451C6.96564 10.2451 7.74915 11.0286 7.74915 11.9951V12.0051C7.74915 12.9716 6.96564 13.7551 5.99915 13.7551C5.03265 13.7551 4.24915 12.9716 4.24915 12.0051V11.9951C4.24915 11.0286 5.03265 10.2451 5.99915 10.2451ZM17.9991 10.2451C18.9656 10.2451 19.7491 11.0286 19.7491 11.9951V12.0051C19.7491 12.9716 18.9656 13.7551 17.9991 13.7551C17.0326 13.7551 16.2491 12.9716 16.2491 12.0051V11.9951C16.2491 11.0286 17.0326 10.2451 17.9991 10.2451ZM13.7491 11.9951C13.7491 11.0286 12.9656 10.2451 11.9991 10.2451C11.0326 10.2451 10.2491 11.0286 10.2491 11.9951V12.0051C10.2491 12.9716 11.0326 13.7551 11.9991 13.7551C12.9656 13.7551 13.7491 12.9716 13.7491 12.0051V11.9951Z"
+              fill="" />
+          </svg>
+        </h3>
 
-            <li class="mt-0.5 w-full">
-                <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors <?php echo ($current_page == 'dataadmin.php') ? 'bg-white shadow-soft-xl rounded-lg font-semibold text-slate-700' : 'text-slate-500'; ?>"
-                    href="dataadmin.php">
-                    <div
-                        class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg text-center xl:p-2.5 <?php echo ($current_page == 'dataadmin.php') ? 'bg-gradient-to-tl from-purple-700 to-pink-500' : 'bg-white'; ?>">
-                        <svg width="12px" height="12px" viewBox="0 0 42 42" version="1.1"
-                            xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                            <title>office</title>
-                            <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                <g transform="translate(-1869.000000, -293.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                                    <g transform="translate(1716.000000, 291.000000)">
-                                        <g transform="translate(153.000000, 2.000000)">
-                                            <path
-                                                class="<?php echo ($current_page == 'dataadmin.php') ? '!fill-white' : 'fill-slate-800 opacity-60'; ?>"
-                                                d="M12.25,17.5 L8.75,17.5 L8.75,1.75 C8.75,0.78225 9.53225,0 10.5,0 L31.5,0 C32.46775,0 33.25,0.78225 33.25,1.75 L33.25,12.25 L29.75,12.25 L29.75,3.5 L12.25,3.5 L12.25,17.5 Z">
-                                            </path>
-                                            <path
-                                                class="<?php echo ($current_page == 'dataadmin.php') ? '!fill-white' : 'fill-slate-800'; ?>"
-                                                d="M40.25,14 L24.5,14 C23.53225,14 22.75,14.78225 22.75,15.75 L22.75,38.5 L19.25,38.5 L19.25,22.75 C19.25,21.78225 18.46775,21 17.5,21 L1.75,21 C0.78225,21 0,21.78225 0,22.75 L0,40.25 C0,41.21775 0.78225,42 1.75,42 L40.25,42 C41.21775,42 42,41.21775 42,40.25 L42,15.75 C42,14.78225 41.21775,14 40.25,14 Z M12.25,36.75 L7,36.75 L7,33.25 L12.25,33.25 L12.25,36.75 Z M12.25,29.75 L7,29.75 L7,26.25 L12.25,26.25 L12.25,29.75 Z M35,36.75 L29.75,36.75 L29.75,33.25 L35,33.25 L35,36.75 Z M35,29.75 L29.75,29.75 L29.75,26.25 L35,26.25 L35,29.75 Z M35,22.75 L29.75,22.75 L29.75,19.25 L35,19.25 L35,22.75 Z">
-                                            </path>
-                                        </g>
-                                    </g>
-                                </g>
-                            </g>
-                        </svg>
-                    </div>
-                    <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Data Admin</span>
-                </a>
-            </li>
+        <ul class="mb-6 flex flex-col gap-4">
+          <!-- Menu Item Dashboard (TANPA DROPDOWN) -->
+          <li>
+            <a href="index.php" class="menu-item group"
+              :class="currentPage === 'dashboard' ? 'menu-item-active' : 'menu-item-inactive'"
+              @mouseenter="setHovered('dashboard')" @mouseleave="clearHovered()">
+              <svg :class="currentPage === 'dashboard' ? 'menu-item-icon-active' : 'menu-item-icon-inactive'" width="24"
+                height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M5.5 3.25C4.25736 3.25 3.25 4.25736 3.25 5.5V8.99998C3.25 10.2426 4.25736 11.25 5.5 11.25H9C10.2426 11.25 11.25 10.2426 11.25 8.99998V5.5C11.25 4.25736 10.2426 3.25 9 3.25H5.5ZM4.75 5.5C4.75 5.08579 5.08579 4.75 5.5 4.75H9C9.41421 4.75 9.75 5.08579 9.75 5.5V8.99998C9.75 9.41419 9.41421 9.74998 9 9.74998H5.5C5.08579 9.74998 4.75 9.41419 4.75 8.99998V5.5ZM5.5 12.75C4.25736 12.75 3.25 13.7574 3.25 15V18.5C3.25 19.7426 4.25736 20.75 5.5 20.75H9C10.2426 20.75 11.25 19.7427 11.25 18.5V15C11.25 13.7574 10.2426 12.75 9 12.75H5.5ZM4.75 15C4.75 14.5858 5.08579 14.25 5.5 14.25H9C9.41421 14.25 9.75 14.5858 9.75 15V18.5C9.75 18.9142 9.41421 19.25 9 19.25H5.5C5.08579 19.25 4.75 18.9142 4.75 18.5V15ZM12.75 5.5C12.75 4.25736 13.7574 3.25 15 3.25H18.5C19.7426 3.25 20.75 4.25736 20.75 5.5V8.99998C20.75 10.2426 19.7426 11.25 18.5 11.25H15C13.7574 11.25 12.75 10.2426 12.75 8.99998V5.5ZM15 4.75C14.5858 4.75 14.25 5.08579 14.25 5.5V8.99998C14.25 9.41419 14.5858 9.74998 15 9.74998H18.5C18.9142 9.74998 19.25 9.41419 19.25 8.99998V5.5C19.25 5.08579 18.9142 4.75 18.5 4.75H15ZM15 12.75C13.7574 12.75 12.75 13.7574 12.75 15V18.5C12.75 19.7426 13.7574 20.75 15 20.75H18.5C19.7426 20.75 20.75 19.7427 20.75 18.5V15C20.75 13.7574 19.7426 12.75 18.5 12.75H15ZM14.25 15C14.25 14.5858 14.5858 14.25 15 14.25H18.5C18.9142 14.25 19.25 14.5858 19.25 15V18.5C19.25 18.9142 18.9142 19.25 18.5 19.25H15C14.5858 19.25 14.25 18.9142 14.25 18.5V15Z"
+                  fill="" />
+              </svg>
 
-            <li class="mt-0.5 w-full">
-                <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors <?php echo ($current_page == 'dataperusahaan.php') ? 'bg-white shadow-soft-xl rounded-lg font-semibold text-slate-700' : 'text-slate-500'; ?>"
-                    href="dataperusahaan.php">
-                    <div
-                        class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg text-center xl:p-2.5 <?php echo ($current_page == 'dataperusahaan.php') ? 'bg-gradient-to-tl from-purple-700 to-pink-500' : 'bg-white'; ?>">
-                        <svg width="12px" height="12px" viewBox="0 0 42 42" version="1.1"
-                            xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                            <title>office</title>
-                            <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                <g transform="translate(-1869.000000, -293.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                                    <g transform="translate(1716.000000, 291.000000)">
-                                        <g transform="translate(153.000000, 2.000000)">
-                                            <path
-                                                class="<?php echo ($current_page == 'dataperusahaan.php') ? '!fill-white' : 'fill-slate-800 opacity-60'; ?>"
-                                                d="M12.25,17.5 L8.75,17.5 L8.75,1.75 C8.75,0.78225 9.53225,0 10.5,0 L31.5,0 C32.46775,0 33.25,0.78225 33.25,1.75 L33.25,12.25 L29.75,12.25 L29.75,3.5 L12.25,3.5 L12.25,17.5 Z">
-                                            </path>
-                                            <path
-                                                class="<?php echo ($current_page == 'dataperusahaan.php') ? '!fill-white' : 'fill-slate-800'; ?>"
-                                                d="M40.25,14 L24.5,14 C23.53225,14 22.75,14.78225 22.75,15.75 L22.75,38.5 L19.25,38.5 L19.25,22.75 C19.25,21.78225 18.46775,21 17.5,21 L1.75,21 C0.78225,21 0,21.78225 0,22.75 L0,40.25 C0,41.21775 0.78225,42 1.75,42 L40.25,42 C41.21775,42 42,41.21775 42,40.25 L42,15.75 C42,14.78225 41.21775,14 40.25,14 Z M12.25,36.75 L7,36.75 L7,33.25 L12.25,33.25 L12.25,36.75 Z M12.25,29.75 L7,29.75 L7,26.25 L12.25,26.25 L12.25,29.75 Z M35,36.75 L29.75,36.75 L29.75,33.25 L35,33.25 L35,36.75 Z M35,29.75 L29.75,29.75 L29.75,26.25 L35,26.25 L35,29.75 Z M35,22.75 L29.75,22.75 L29.75,19.25 L35,19.25 L35,22.75 Z">
-                                            </path>
-                                        </g>
-                                    </g>
-                                </g>
-                            </g>
-                        </svg>
-                    </div>
-                    <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Data Perusahaan</span>
-                </a>
-            </li>
+              <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
+                Dashboard
+              </span>
+            </a>
+          </li>
+          <!-- Menu Item Dashboard -->
+          <!-- Menu Item Data Master -->
+          <li>
+            <a href="#" @click.prevent="toggleDropdown('data-master')" class="menu-item group"
+              :class="(isDropdownOpen('data-master') || isDataMasterPage()) ? 'menu-item-active' : 'menu-item-inactive'"
+              @mouseenter="setHovered('data-master')" @mouseleave="clearHovered()">
+              <svg
+                :class="(isDropdownOpen('data-master') || isDataMasterPage() || isHovered('data-master')) ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"
+                width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M3.25 5.5C3.25 4.25736 4.25736 3.25 5.5 3.25H18.5C19.7426 3.25 20.75 4.25736 20.75 5.5V18.5C20.75 19.7426 19.7426 20.75 18.5 20.75H5.5C4.25736 20.75 3.25 19.7426 3.25 18.5V5.5ZM5.5 4.75C5.08579 4.75 4.75 5.08579 4.75 5.5V8.58325L19.25 8.58325V5.5C19.25 5.08579 18.9142 4.75 18.5 4.75H5.5ZM19.25 10.0833H15.416V13.9165H19.25V10.0833ZM13.916 10.0833L10.083 10.0833V13.9165L13.916 13.9165V10.0833ZM8.58301 10.0833H4.75V13.9165H8.58301V10.0833ZM4.75 18.5V15.4165H8.58301V19.25H5.5C5.08579 19.25 4.75 18.9142 4.75 18.5ZM10.083 19.25V15.4165L13.916 15.4165V19.25H10.083ZM15.416 19.25V15.4165H19.25V18.5C19.25 18.9142 18.9142 19.25 18.5 19.25H15.416Z"
+                  fill="" />
+              </svg>
 
-            <li class="mt-0.5 w-full">
-                <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors <?php echo ($current_page == 'datapelamar.php') ? 'bg-white shadow-soft-xl rounded-lg font-semibold text-slate-700' : 'text-slate-500'; ?>"
-                    href="datapelamar.php">
-                    <div
-                        class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg text-center xl:p-2.5 <?php echo ($current_page == 'datapelamar.php') ? 'bg-gradient-to-tl from-purple-700 to-pink-500' : 'bg-white'; ?>">
-                        <svg width="12px" height="12px" viewBox="0 0 42 42" version="1.1"
-                            xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                            <title>office</title>
-                            <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                <g transform="translate(-1869.000000, -293.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                                    <g transform="translate(1716.000000, 291.000000)">
-                                        <g transform="translate(153.000000, 2.000000)">
-                                            <path
-                                                class="<?php echo ($current_page == 'datapelamar.php') ? '!fill-white' : 'fill-slate-800 opacity-60'; ?>"
-                                                d="M12.25,17.5 L8.75,17.5 L8.75,1.75 C8.75,0.78225 9.53225,0 10.5,0 L31.5,0 C32.46775,0 33.25,0.78225 33.25,1.75 L33.25,12.25 L29.75,12.25 L29.75,3.5 L12.25,3.5 L12.25,17.5 Z">
-                                            </path>
-                                            <path
-                                                class="<?php echo ($current_page == 'datapelamar.php') ? '!fill-white' : 'fill-slate-800'; ?>"
-                                                d="M40.25,14 L24.5,14 C23.53225,14 22.75,14.78225 22.75,15.75 L22.75,38.5 L19.25,38.5 L19.25,22.75 C19.25,21.78225 18.46775,21 17.5,21 L1.75,21 C0.78225,21 0,21.78225 0,22.75 L0,40.25 C0,41.21775 0.78225,42 1.75,42 L40.25,42 C41.21775,42 42,41.21775 42,40.25 L42,15.75 C42,14.78225 41.21775,14 40.25,14 Z M12.25,36.75 L7,36.75 L7,33.25 L12.25,33.25 L12.25,36.75 Z M12.25,29.75 L7,29.75 L7,26.25 L12.25,26.25 L12.25,29.75 Z M35,36.75 L29.75,36.75 L29.75,33.25 L35,33.25 L35,36.75 Z M35,29.75 L29.75,29.75 L29.75,26.25 L35,26.25 L35,29.75 Z M35,22.75 L29.75,22.75 L29.75,19.25 L35,19.25 L35,22.75 Z">
-                                            </path>
-                                        </g>
-                                    </g>
-                                </g>
-                            </g>
-                        </svg>
-                    </div>
-                    <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Data Pelamar</span>
-                </a>
-            </li>
+              <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
+                Data Master
+              </span>
 
-            <li class="w-full mt-4">
-                <h6 class="pl-6 ml-2 font-bold leading-tight uppercase text-xs opacity-60">
-                    Rekrutmen
-                </h6>
-            </li>
+              <svg class="menu-item-arrow absolute right-2.5 top-1/2 -translate-y-1/2 stroke-current"
+                :class="[(isDropdownOpen('data-master') || isDataMasterPage() || isHovered('data-master')) ? 'rotate-180' : '', sidebarToggle ? 'lg:hidden' : '' ]"
+                width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4.79175 7.39584L10.0001 12.6042L15.2084 7.39585" stroke="" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </a>
 
-            <li class="mt-0.5 w-full">
-                <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors <?php echo ($current_page == 'datalowongan.php') ? 'bg-white shadow-soft-xl rounded-lg font-semibold text-slate-700' : 'text-slate-500'; ?>"
-                    href="datalowongan.php">
-                    <div
-                        class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg text-center xl:p-2.5 <?php echo ($current_page == 'datalowongan.php') ? 'bg-gradient-to-tl from-purple-700 to-pink-500' : 'bg-white'; ?>">
-                        <svg width="12px" height="12px" viewBox="0 0 42 42" version="1.1"
-                            xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                            <title>office</title>
-                            <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                <g transform="translate(-1869.000000, -293.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                                    <g transform="translate(1716.000000, 291.000000)">
-                                        <g transform="translate(153.000000, 2.000000)">
-                                            <path
-                                                class="<?php echo ($current_page == 'datalowongan.php') ? '!fill-white' : 'fill-slate-800 opacity-60'; ?>"
-                                                d="M12.25,17.5 L8.75,17.5 L8.75,1.75 C8.75,0.78225 9.53225,0 10.5,0 L31.5,0 C32.46775,0 33.25,0.78225 33.25,1.75 L33.25,12.25 L29.75,12.25 L29.75,3.5 L12.25,3.5 L12.25,17.5 Z">
-                                            </path>
-                                            <path
-                                                class="<?php echo ($current_page == 'datalowongan.php') ? '!fill-white' : 'fill-slate-800'; ?>"
-                                                d="M40.25,14 L24.5,14 C23.53225,14 22.75,14.78225 22.75,15.75 L22.75,38.5 L19.25,38.5 L19.25,22.75 C19.25,21.78225 18.46775,21 17.5,21 L1.75,21 C0.78225,21 0,21.78225 0,22.75 L0,40.25 C0,41.21775 0.78225,42 1.75,42 L40.25,42 C41.21775,42 42,41.21775 42,40.25 L42,15.75 C42,14.78225 41.21775,14 40.25,14 Z M12.25,36.75 L7,36.75 L7,33.25 L12.25,33.25 L12.25,36.75 Z M12.25,29.75 L7,29.75 L7,26.25 L12.25,26.25 L12.25,29.75 Z M35,36.75 L29.75,36.75 L29.75,33.25 L35,33.25 L35,36.75 Z M35,29.75 L29.75,29.75 L29.75,26.25 L35,26.25 L35,29.75 Z M35,22.75 L29.75,22.75 L29.75,19.25 L35,19.25 L35,22.75 Z">
-                                            </path>
-                                        </g>
-                                    </g>
-                                </g>
-                            </g>
-                        </svg>
-                    </div>
-                    <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Data Lowongan</span>
-                </a>
-            </li>
+            <!-- Dropdown Menu Start -->
+            <div class="translate transform overflow-hidden"
+              :class="(isDropdownOpen('data-master') || isDataMasterPage()) ? 'block' :'hidden'">
+              <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'" class="menu-dropdown mt-2 flex flex-col gap-1 pl-9">
 
-            <li class="mt-0.5 w-full">
-                <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors <?php echo ($current_page == 'datalamaran.php') ? 'bg-white shadow-soft-xl rounded-lg font-semibold text-slate-700' : 'text-slate-500'; ?>"
-                    href="datalamaran.php">
-                    <div
-                        class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg text-center xl:p-2.5 <?php echo ($current_page == 'datalamaran.php') ? 'bg-gradient-to-tl from-purple-700 to-pink-500' : 'bg-white'; ?>">
-                        <svg width="12px" height="12px" viewBox="0 0 42 42" version="1.1"
-                            xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                            <title>office</title>
-                            <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                <g transform="translate(-1869.000000, -293.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                                    <g transform="translate(1716.000000, 291.000000)">
-                                        <g transform="translate(153.000000, 2.000000)">
-                                            <path
-                                                class="<?php echo ($current_page == 'datalamaran.php') ? '!fill-white' : 'fill-slate-800 opacity-60'; ?>"
-                                                d="M12.25,17.5 L8.75,17.5 L8.75,1.75 C8.75,0.78225 9.53225,0 10.5,0 L31.5,0 C32.46775,0 33.25,0.78225 33.25,1.75 L33.25,12.25 L29.75,12.25 L29.75,3.5 L12.25,3.5 L12.25,17.5 Z">
-                                            </path>
-                                            <path
-                                                class="<?php echo ($current_page == 'datalamaran.php') ? '!fill-white' : 'fill-slate-800'; ?>"
-                                                d="M40.25,14 L24.5,14 C23.53225,14 22.75,14.78225 22.75,15.75 L22.75,38.5 L19.25,38.5 L19.25,22.75 C19.25,21.78225 18.46775,21 17.5,21 L1.75,21 C0.78225,21 0,21.78225 0,22.75 L0,40.25 C0,41.21775 0.78225,42 1.75,42 L40.25,42 C41.21775,42 42,41.21775 42,40.25 L42,15.75 C42,14.78225 41.21775,14 40.25,14 Z M12.25,36.75 L7,36.75 L7,33.25 L12.25,33.25 L12.25,36.75 Z M12.25,29.75 L7,29.75 L7,26.25 L12.25,26.25 L12.25,29.75 Z M35,36.75 L29.75,36.75 L29.75,33.25 L35,33.25 L35,36.75 Z M35,29.75 L29.75,29.75 L29.75,26.25 L35,26.25 L35,29.75 Z M35,22.75 L29.75,22.75 L29.75,19.25 L35,19.25 L35,22.75 Z">
-                                            </path>
-                                        </g>
-                                    </g>
-                                </g>
-                            </g>
-                        </svg>
-                    </div>
-                    <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Data Lamaran</span>
-                </a>
-            </li>
+                <!-- Data Pelamar -->
+                <li>
+                  <a href="datapelamar.php" class="menu-dropdown-item group"
+                    :class="isActiveSubmenu('datapelamar') ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                    @mouseenter="setHovered('datapelamar')" @mouseleave="clearHovered()">
+                    Data Pelamar
+                  </a>
+                </li>
+                <!-- Data Perusahaan -->
+                <li>
+                  <a href="dataperusahaan.php" class="menu-dropdown-item group"
+                    :class="isActiveSubmenu('dataperusahaan') ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                    @mouseenter="setHovered('dataperusahaan')" @mouseleave="clearHovered()">
+                    Data Perusahaan
+                  </a>
+                </li>
+                <!-- Data Kategori -->
+                <li>
+                  <a href="datakategori.php" class="menu-dropdown-item group"
+                    :class="isActiveSubmenu('datakategori') ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                    @mouseenter="setHovered('datakategori')" @mouseleave="clearHovered()">
+                    Data Kategori
+                  </a>
+                </li>
 
-            <li class="w-full mt-4">
-                <h6 class="pl-6 ml-2 font-bold leading-tight uppercase text-xs opacity-60">
-                    Data Master
-                </h6>
-            </li>
+                <!-- Data Jenis -->
+                <li>
+                  <a href="datajenis.php" class="menu-dropdown-item group"
+                    :class="isActiveSubmenu('datajenis') ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                    @mouseenter="setHovered('datajenis')" @mouseleave="clearHovered()">
+                    Data Jenis
+                  </a>
+                </li>
 
-            <li class="mt-0.5 w-full">
-                <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors <?php echo ($current_page == 'datakategori.php') ? 'bg-white shadow-soft-xl rounded-lg font-semibold text-slate-700' : 'text-slate-500'; ?>"
-                    href="datakategori.php">
-                    <div
-                        class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg text-center xl:p-2.5 <?php echo ($current_page == 'datakategori.php') ? 'bg-gradient-to-tl from-purple-700 to-pink-500' : 'bg-white'; ?>">
-                        <svg width="12px" height="12px" viewBox="0 0 42 42" version="1.1"
-                            xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                            <title>office</title>
-                            <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                <g transform="translate(-1869.000000, -293.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                                    <g transform="translate(1716.000000, 291.000000)">
-                                        <g transform="translate(153.000000, 2.000000)">
-                                            <path
-                                                class="<?php echo ($current_page == 'datakategori.php') ? '!fill-white' : 'fill-slate-800 opacity-60'; ?>"
-                                                d="M12.25,17.5 L8.75,17.5 L8.75,1.75 C8.75,0.78225 9.53225,0 10.5,0 L31.5,0 C32.46775,0 33.25,0.78225 33.25,1.75 L33.25,12.25 L29.75,12.25 L29.75,3.5 L12.25,3.5 L12.25,17.5 Z">
-                                            </path>
-                                            <path
-                                                class="<?php echo ($current_page == 'datakategori.php') ? '!fill-white' : 'fill-slate-800'; ?>"
-                                                d="M40.25,14 L24.5,14 C23.53225,14 22.75,14.78225 22.75,15.75 L22.75,38.5 L19.25,38.5 L19.25,22.75 C19.25,21.78225 18.46775,21 17.5,21 L1.75,21 C0.78225,21 0,21.78225 0,22.75 L0,40.25 C0,41.21775 0.78225,42 1.75,42 L40.25,42 C41.21775,42 42,41.21775 42,40.25 L42,15.75 C42,14.78225 41.21775,14 40.25,14 Z M12.25,36.75 L7,36.75 L7,33.25 L12.25,33.25 L12.25,36.75 Z M12.25,29.75 L7,29.75 L7,26.25 L12.25,26.25 L12.25,29.75 Z M35,36.75 L29.75,36.75 L29.75,33.25 L35,33.25 L35,36.75 Z M35,29.75 L29.75,29.75 L29.75,26.25 L35,26.25 L35,29.75 Z M35,22.75 L29.75,22.75 L29.75,19.25 L35,19.25 L35,22.75 Z">
-                                            </path>
-                                        </g>
-                                    </g>
-                                </g>
-                            </g>
-                        </svg>
-                    </div>
-                    <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Data Kategori</span>
-                </a>
-            </li>
-
-            <li class="mt-0.5 w-full">
-                <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors <?php echo ($current_page == 'datajenis.php') ? 'bg-white shadow-soft-xl rounded-lg font-semibold text-slate-700' : 'text-slate-500'; ?>"
-                    href="datajenis.php">
-                    <div
-                        class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg text-center xl:p-2.5 <?php echo ($current_page == 'datajenis.php') ? 'bg-gradient-to-tl from-purple-700 to-pink-500' : 'bg-white'; ?>">
-                        <svg width="12px" height="12px" viewBox="0 0 42 42" version="1.1"
-                            xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                            <title>office</title>
-                            <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                <g transform="translate(-1869.000000, -293.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                                    <g transform="translate(1716.000000, 291.000000)">
-                                        <g transform="translate(153.000000, 2.000000)">
-                                            <path
-                                                class="<?php echo ($current_page == 'datajenis.php') ? '!fill-white' : 'fill-slate-800 opacity-60'; ?>"
-                                                d="M12.25,17.5 L8.75,17.5 L8.75,1.75 C8.75,0.78225 9.53225,0 10.5,0 L31.5,0 C32.46775,0 33.25,0.78225 33.25,1.75 L33.25,12.25 L29.75,12.25 L29.75,3.5 L12.25,3.5 L12.25,17.5 Z">
-                                            </path>
-                                            <path
-                                                class="<?php echo ($current_page == 'datajenis.php') ? '!fill-white' : 'fill-slate-800'; ?>"
-                                                d="M40.25,14 L24.5,14 C23.53225,14 22.75,14.78225 22.75,15.75 L22.75,38.5 L19.25,38.5 L19.25,22.75 C19.25,21.78225 18.46775,21 17.5,21 L1.75,21 C0.78225,21 0,21.78225 0,22.75 L0,40.25 C0,41.21775 0.78225,42 1.75,42 L40.25,42 C41.21775,42 42,41.21775 42,40.25 L42,15.75 C42,14.78225 41.21775,14 40.25,14 Z M12.25,36.75 L7,36.75 L7,33.25 L12.25,33.25 L12.25,36.75 Z M12.25,29.75 L7,29.75 L7,26.25 L12.25,26.25 L12.25,29.75 Z M35,36.75 L29.75,36.75 L29.75,33.25 L35,33.25 L35,36.75 Z M35,29.75 L29.75,29.75 L29.75,26.25 L35,26.25 L35,29.75 Z M35,22.75 L29.75,22.75 L29.75,19.25 L35,19.25 L35,22.75 Z">
-                                            </path>
-                                        </g>
-                                    </g>
-                                </g>
-                            </g>
-                        </svg>
-                    </div>
-                    <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Data Jenis</span>
-                </a>
-            </li>
+                <!-- Data Lokasi -->
+                <li>
+                  <a href="datalokasi.php" class="menu-dropdown-item group"
+                    :class="isActiveSubmenu('datalokasi') ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                    @mouseenter="setHovered('datalokasi')" @mouseleave="clearHovered()">
+                    Data Lokasi
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <!-- Dropdown Menu End -->
+          </li>
+          <!-- Menu Item Data Master -->
 
 
-            <li class="w-full mt-4">
-                <h6 class="pl-6 ml-2 font-bold leading-tight uppercase text-xs opacity-60">
-                    Account pages
-                </h6>
-            </li>
+          <!-- Menu Item Rekrutmen -->
+          <li>
+            <a href="#" @click.prevent="toggleDropdown('rekrutmen')" class="menu-item group"
+              :class="(isDropdownOpen('rekrutmen') || isRekrutmenPage()) ? 'menu-item-active' : 'menu-item-inactive'"
+              @mouseenter="setHovered('rekrutmen')" @mouseleave="clearHovered()">
+              <svg
+                :class="(isDropdownOpen('rekrutmen') || isRekrutmenPage() || isHovered('rekrutmen')) ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"
+                width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M3.25 5.5C3.25 4.25736 4.25736 3.25 5.5 3.25H18.5C19.7426 3.25 20.75 4.25736 20.75 5.5V18.5C20.75 19.7426 19.7426 20.75 18.5 20.75H5.5C4.25736 20.75 3.25 19.7426 3.25 18.5V5.5ZM5.5 4.75C5.08579 4.75 4.75 5.08579 4.75 5.5V8.58325L19.25 8.58325V5.5C19.25 5.08579 18.9142 4.75 18.5 4.75H5.5ZM19.25 10.0833H15.416V13.9165H19.25V10.0833ZM13.916 10.0833L10.083 10.0833V13.9165L13.916 13.9165V10.0833ZM8.58301 10.0833H4.75V13.9165H8.58301V10.0833ZM4.75 18.5V15.4165H8.58301V19.25H5.5C5.08579 19.25 4.75 18.9142 4.75 18.5ZM10.083 19.25V15.4165L13.916 15.4165V19.25H10.083ZM15.416 19.25V15.4165H19.25V18.5C19.25 18.9142 18.9142 19.25 18.5 19.25H15.416Z"
+                  fill="" />
+              </svg>
 
-            <li class="mt-0.5 w-full">
-                <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors"
-                    href="profile.php">
-                    <div
-                        class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white bg-center stroke-0 text-center xl:p-2.5">
-                        <svg width="12px" height="12px" viewBox="0 0 46 42" version="1.1"
-                            xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                            <title>customer-support</title>
-                            <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                <g transform="translate(-1717.000000, -291.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                                    <g transform="translate(1716.000000, 291.000000)">
-                                        <g transform="translate(1.000000, 0.000000)">
-                                            <path
-                                                class="<?php echo ($current_page == 'profile.php') ? '!fill-white' : 'fill-slate-800 opacity-60'; ?>"
-                                                d="M45,0 L26,0 C25.447,0 25,0.447 25,1 L25,20 C25,20.379 25.214,20.725 25.553,20.895 C25.694,20.965 25.848,21 26,21 C26.212,21 26.424,20.933 26.6,20.8 L34.333,15 L45,15 C45.553,15 46,14.553 46,14 L46,1 C46,0.447 45.553,0 45,0 Z">
-                                            </path>
-                                            <path
-                                                class="<?php echo ($current_page == 'profile.php') ? '!fill-white' : 'fill-slate-800'; ?>"
-                                                d="M22.883,32.86 C20.761,32.012 17.324,31 13,31 C8.676,31 5.239,32.012 3.116,32.86 C1.224,33.619 0,35.438 0,37.494 L0,41 C0,41.553 0.447,42 1,42 L25,42 C25.553,42 26,41.553 26,41 L26,37.494 C26,35.438 24.776,33.619 22.883,32.86 Z">
-                                            </path>
-                                            <path
-                                                class="<?php echo ($current_page == 'profile.php') ? '!fill-white' : 'fill-slate-800'; ?>"
-                                                d="M13,28 C17.432,28 21,22.529 21,18 C21,13.589 17.411,10 13,10 C8.589,10 5,13.589 5,18 C5,22.529 8.568,28 13,28 Z">
-                                            </path>
-                                        </g>
-                                    </g>
-                                </g>
-                            </g>
-                        </svg>
-                    </div>
-                    <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Profile</span>
-                </a>
-            </li>
+              <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
+                Rekrutmen
+              </span>
 
-            <li class="mt-0.5 w-full">
-                <a class="py-2.7 text-sm ease-nav-brand my-0 mx-4 flex items-center whitespace-nowrap px-4 transition-colors text-slate-500"
-                    href="javascript:void(0)" onclick="confirmLogout()">
-                    <div
-                        class="shadow-soft-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white bg-center stroke-0 text-center xl:p-2.5">
-                        <svg width="12px" height="12px" viewBox="0 0 40 44">
-                            <path class="fill-slate-800 opacity-60"
-                                d="M40,40 L36.3636364,40 L36.3636364,3.63636364 L5.45454545,3.63636364 L5.45454545,0 L38.1818182,0 C39.1854545,0 40,0.814545455">
-                            </path>
-                        </svg>
-                    </div>
-                    <span class="ml-1 duration-300 opacity-100 pointer-events-none ease-soft">Logout</span>
-                </a>
-            </li>
+              <svg class="menu-item-arrow absolute right-2.5 top-1/2 -translate-y-1/2 stroke-current"
+                :class="[(isDropdownOpen('rekrutmen') || isRekrutmenPage() || isHovered('rekrutmen')) ? 'rotate-180' : '', sidebarToggle ? 'lg:hidden' : '' ]"
+                width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4.79175 7.39584L10.0001 12.6042L15.2084 7.39585" stroke="" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </a>
+
+            <!-- Dropdown Menu Start -->
+            <div class="translate transform overflow-hidden"
+              :class="(isDropdownOpen('rekrutmen') || isRekrutmenPage()) ? 'block' :'hidden'">
+              <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'" class="menu-dropdown mt-2 flex flex-col gap-1 pl-9">
+                <!-- Data Lowongan -->
+                <li>
+                  <a href="datalowongan.php" class="menu-dropdown-item group"
+                    :class="isActiveSubmenu('datalowongan') ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                    @mouseenter="setHovered('datalowongan')" @mouseleave="clearHovered()">
+                    Data Lowongan
+                  </a>
+                </li>
+
+                <!-- Data Lamaran -->
+                <li>
+                  <a href="datalamaran.php" class="menu-dropdown-item group"
+                    :class="isActiveSubmenu('datalamaran') ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                    @mouseenter="setHovered('datalamaran')" @mouseleave="clearHovered()">
+                    Data Lamaran
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <!-- Dropdown Menu End -->
+          </li>
+          <!-- Menu Item Rekrutmen -->
+          <!-- Menu Item Manajemen Pengguna -->
+          <li>
+            <a href="#" @click.prevent="toggleDropdown('manajemen-pengguna')" class="menu-item group"
+              :class="(isDropdownOpen('manajemen-pengguna') || isManajemenPenggunaPage()) ? 'menu-item-active' : 'menu-item-inactive'"
+              @mouseenter="setHovered('manajemen-pengguna')" @mouseleave="clearHovered()">
+              <svg
+                :class="(isDropdownOpen('manajemen-pengguna') || isManajemenPenggunaPage() || isHovered('manajemen-pengguna')) ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"
+                width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M3.25 5.5C3.25 4.25736 4.25736 3.25 5.5 3.25H18.5C19.7426 3.25 20.75 4.25736 20.75 5.5V18.5C20.75 19.7426 19.7426 20.75 18.5 20.75H5.5C4.25736 20.75 3.25 19.7426 3.25 18.5V5.5ZM5.5 4.75C5.08579 4.75 4.75 5.08579 4.75 5.5V8.58325L19.25 8.58325V5.5C19.25 5.08579 18.9142 4.75 18.5 4.75H5.5ZM19.25 10.0833H15.416V13.9165H19.25V10.0833ZM13.916 10.0833L10.083 10.0833V13.9165L13.916 13.9165V10.0833ZM8.58301 10.0833H4.75V13.9165H8.58301V10.0833ZM4.75 18.5V15.4165H8.58301V19.25H5.5C5.08579 19.25 4.75 18.9142 4.75 18.5ZM10.083 19.25V15.4165L13.916 15.4165V19.25H10.083ZM15.416 19.25V15.4165H19.25V18.5C19.25 18.9142 18.9142 19.25 18.5 19.25H15.416Z"
+                  fill="" />
+              </svg>
+
+              <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
+                Manajemen Pengguna
+              </span>
+
+              <svg class="menu-item-arrow absolute right-2.5 top-1/2 -translate-y-1/2 stroke-current"
+                :class="[(isDropdownOpen('manajemen-pengguna') || isManajemenPenggunaPage() || isHovered('manajemen-pengguna')) ? 'rotate-180' : '', sidebarToggle ? 'lg:hidden' : '' ]"
+                width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4.79175 7.39584L10.0001 12.6042L15.2084 7.39585" stroke="" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </a>
+
+            <!-- Dropdown Menu Start -->
+            <div class="translate transform overflow-hidden"
+              :class="(isDropdownOpen('manajemen-pengguna') || isManajemenPenggunaPage()) ? 'block' :'hidden'">
+              <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'" class="menu-dropdown mt-2 flex flex-col gap-1 pl-9">
+
+                <!-- Data Admin -->
+                <li>
+                  <a href="dataadmin.php" class="menu-dropdown-item group"
+                    :class="isActiveSubmenu('dataadmin') ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                    @mouseenter="setHovered('dataadmin')" @mouseleave="clearHovered()">
+                    Data Admin
+                  </a>
+                </li>
+
+
+              </ul>
+            </div>
+            <!-- Dropdown Menu End -->
+          </li>
+          <!-- Menu Item Manajemen Pengguna -->
+
+
         </ul>
-    </div>
-
+      </div>
+    </nav>
+    <!-- Sidebar Menu -->
+  </div>
 </aside>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<script>
-    function confirmLogout() {
-        Swal.fire({
-            title: '<span style="color: #344767; font-weight: 700;">Konfirmasi Logout</span>',
-            html: '<span style="color: #67748e;">Apakah Anda yakin ingin mengakhiri sesi ini?</span>',
-            icon: 'warning',
-            iconColor: '#fb3333ff', // Warna kuning Soft UI
-            showCancelButton: true,
-            buttonsStyling: false, // Wajib false agar class custom kita jalan
-            confirmButtonText: 'Ya, Logout',
-            cancelButtonText: 'Batal',
-            reverseButtons: true,
-            customClass: {
-                popup: 'rounded-3xl p-6 shadow-soft-2xl',
-                // Menambahkan min-width (w-32) dan padding vertical (py-3) agar tidak gepeng
-                confirmButton: 'inline-block w-32 px-6 py-3 mx-2 text-xs font-bold text-center text-white uppercase align-middle transition-all bg-gradient-to-tl from-purple-700 to-pink-500 rounded-lg cursor-pointer tracking-tight-rem shadow-soft-md bg-150 bg-x-25 hover:scale-102 active:opacity-85',
-                cancelButton: 'inline-block w-32 px-6 py-3 mx-2 text-xs font-bold text-center text-slate-500 uppercase align-middle transition-all bg-transparent border border-slate-200 rounded-lg cursor-pointer tracking-tight-rem hover:bg-slate-50 hover:scale-102 active:opacity-85'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Efek transisi sukses sebelum logout (opsional)
-                Swal.fire({
-                    title: 'Berhasil!',
-                    text: 'Anda telah logout.',
-                    icon: 'success',
-                    showConfirmButton: false,
-                    timer: 1500
-                }).then(() => {
-                    window.location.href = 'logout.php';
-                });
-            }
-        })
-    }
-</script>
+<script defer src="bundle.js"></script>

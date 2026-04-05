@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Export Data Lamaran</title>
+        <style>
+            body { font-family: Arial, sans-serif; font-size: 11px; margin: 20px; }
+            h1 { color: #2563eb; text-align: center; font-size: 18px; margin-bottom: 20px; }
+            .info { margin-bottom: 20px; font-size: 10px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th { background-color: #2563eb; color: white; padding: 8px; font-size: 10px; }
+            td { border: 1px solid #ddd; padding: 6px; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .footer { text-align: center; margin-top: 20px; font-size: 9px; color: #666; }
+            @media print {
+                body { margin: 0; padding: 10px; }
+                .no-print { display: none; }
+                button { display: none; }
+            }
+        </style>
+    </head>
+    <body>
+        <h1>LAPORAN DATA LAMARAN MASUK</h1>
+        <div class="info">
+            <p><strong>Tanggal Export:</strong> 04/04/2026 14:51:58</p>
+            <p><strong>Total Data:</strong> 6 lamaran</p>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama Pelamar</th>
+                    <th>Email</th>
+                    <th>No. Telepon</th>
+                    <th>Lowongan</th>
+                    <th>Tgl Lamar</th>
+                    <th>Status</th>
+                    <th>Catatan</th>
+                </tr>
+            </thead>
+            <tbody><tr>
+            <td>1</td>
+            <td>User 123</td>
+            <td>funugepony@mailinator.com</td>
+            <td>085699359850</td>
+            <td>Front End Developer</td>
+            <td>10/02/2026</td>
+            <td>Diproses</td>
+            <td>Consectetur mollit 
+</td>
+        </tr><tr>
+            <td>2</td>
+            <td>Siti Nuraini</td>
+            <td>sitinur@gmail.com</td>
+            <td>082233445566</td>
+            <td>Web Design Developer</td>
+            <td>06/02/2026</td>
+            <td>Diterima</td>
+            <td>Kandidat sesuai kriteria, sedang dijadwalkan untuk</td>
+        </tr><tr>
+            <td>3</td>
+            <td>Rizky Re Maulanao</td>
+            <td>rizkymaulana@gmail.com</td>
+            <td>083344556677</td>
+            <td>Web Design Developer</td>
+            <td>06/02/2026</td>
+            <td>Diproses</td>
+            <td>Kandidat sesuai kriteria, sedang dijadwalkan untuk</td>
+        </tr><tr>
+            <td>4</td>
+            <td>Siti Nuraini</td>
+            <td>sitinur@gmail.com</td>
+            <td>082233445566</td>
+            <td>Web Design Developer</td>
+            <td>14/01/2026</td>
+            <td>Diproses</td>
+            <td>Kandidat memiliki pengalaman PHP yang kuat, lanjut</td>
+        </tr><tr>
+            <td>5</td>
+            <td>Rizky Re Maulanao</td>
+            <td>rizkymaulana@gmail.com</td>
+            <td>083344556677</td>
+            <td>Web Design Developer</td>
+            <td>14/01/2026</td>
+            <td>Ditolak</td>
+            <td>Sedang di review ulang oleh hrd. acc</td>
+        </tr><tr>
+            <td>6</td>
+            <td>Andika Putra Dwi ardy</td>
+            <td>andika@gmail.com</td>
+            <td>081234567111</td>
+            <td>Web Design Developer</td>
+            <td>10/01/2025</td>
+            <td>Diterima</td>
+            <td>CV sudah sesuai, menunggu interview</td>
+        </tr></tbody>
+        </table>
+        <div class="footer">
+            Dicetak dari Sistem LinkUp - 2026
+        </div>
+        <div class="no-print" style="text-align: center; margin-top: 20px;">
+            <button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                💾 Simpan sebagai PDF (Klik di sini)
+            </button>
+            <p style="margin-top: 10px; font-size: 12px; color: #666;">Klik tombol di atas, lalu pilih "Save as PDF"</p>
+        </div>
+        <script>
+            // Auto trigger print dialog setelah halaman load
+            setTimeout(function() {
+                window.print();
+            }, 1000);
+        </script>
+    </body>
+    </html>

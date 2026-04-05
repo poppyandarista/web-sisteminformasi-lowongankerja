@@ -1,3 +1,65 @@
+<?php
+session_start();
+require_once 'adminpanel/koneksi.php';
+
+// Initialize database connection
+$db = new database();
+
+// Check if user is already logged in
+if (isset($_SESSION['user_id'])) {
+    header('Location: index.php');
+    exit();
+}
+
+// Handle login form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
+
+    if (!empty($email) && !empty($password)) {
+        // Query user table for authentication
+        $query = "SELECT * FROM user WHERE email_user = ? AND password_user = ?";
+        $stmt = $db->koneksi->prepare($query);
+
+        if ($stmt) {
+            $stmt->bind_param("ss", $email, $password);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result->num_rows > 0) {
+                $user = $result->fetch_assoc();
+
+                // Set session variables
+                $_SESSION['user_id'] = $user['id_user'];
+                $_SESSION['email'] = $user['email_user'];
+                $_SESSION['username'] = $user['username_user'];
+
+                // Return success response
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Login berhasil',
+                    'redirect' => 'index.php'
+                ]);
+                exit();
+            } else {
+                // Return error response
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Email atau kata sandi salah'
+                ]);
+                exit();
+            }
+            $stmt->close();
+        }
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Email dan kata sandi harus diisi'
+        ]);
+        exit();
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -6,7 +68,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinkUp | Login</title>
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="assets/img/icon-linkup2.png">
+    <link rel="icon" type="image/png" href="assets/img/favicon.png">
     <style>
         * {
             margin: 0;
@@ -896,7 +958,7 @@
 
             <div class="career-header">
                 <div class="career-logo">
-                    <img src="assets/img/icon-linkup2.png" alt="LinkUp Logo"
+                    <img src="assets/img/favicon.png" alt="LinkUp Logo"
                         style="width: 100%; height: auto; max-width: 300px;">
                     <div class="career-glow"></div>
                 </div>
@@ -1103,13 +1165,32 @@
                 this.setLoading(true);
 
                 try {
-                    // Simulate authentication process
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    const formData = new FormData(this.form);
 
-                    // Show success
-                    this.showCareerSuccess();
+                    const response = await fetch('login.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Show success message
+                        this.showCareerSuccess();
+
+                        // Redirect to index.php after showing success
+                        setTimeout(() => {
+                            window.location.href = result.redirect;
+                        }, 2000);
+                    } else {
+                        // Show error message with custom alert
+                        this.showAlert('error', result.message || 'Login gagal. Silakan coba lagi.');
+                        this.showError('password', result.message || 'Login gagal. Silakan coba lagi.');
+                    }
                 } catch (error) {
-                    this.showError('password', 'Login failed. Please try again.');
+                    console.error('Login error:', error);
+                    this.showAlert('error', 'Terjadi kesalahan koneksi. Silakan coba lagi.');
+                    this.showError('password', 'Terjadi kesalahan koneksi. Silakan coba lagi.');
                 } finally {
                     this.setLoading(false);
                 }
@@ -1153,8 +1234,9 @@
                 this.submitButton.classList.toggle('loading', loading);
                 this.submitButton.disabled = loading;
 
-                // Disable social buttons during processing
-                this.socialButtons.forEach(button => {
+                // Disable social buttons during processing (if they exist)
+                const socialButtons = document.querySelectorAll('.career-social .career-social');
+                socialButtons.forEach(button => {
                     button.style.pointerEvents = loading ? 'none' : 'auto';
                     button.style.opacity = loading ? '0.6' : '1';
                 });
@@ -1167,19 +1249,151 @@
 
                 setTimeout(() => {
                     this.form.style.display = 'none';
-                    document.querySelector('.professional-social').style.display = 'none';
+                    document.querySelector('.professional-social')?.style.setProperty('display', 'none', 'important');
                     document.querySelector('.career-signup').style.display = 'none';
-                    document.querySelector('.career-divider').style.display = 'none';
+                    document.querySelector('.career-divider')?.style.setProperty('display', 'none', 'important');
 
-                    // Show success
+                    // Show success message with custom alert
+                    this.showAlert('success', 'Login Berhasil! Mengalihkan ke halaman utama...');
                     this.successMessage.classList.add('show');
 
                 }, 300);
+            }
 
-                // Redirect after success
+            showAlert(type, message) {
+                // Remove existing alerts
+                const existingAlert = document.querySelector('.custom-alert');
+                if (existingAlert) {
+                    existingAlert.remove();
+                }
+
+                // Create alert element
+                const alert = document.createElement('div');
+                alert.className = `custom-alert alert-${type}`;
+                alert.innerHTML = `
+                    <div class="alert-content">
+                        <div class="alert-icon">
+                            ${type === 'success' ?
+                        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM16.2803 9.21967C16.5732 8.92678 16.5732 8.4519 16.2803 8.15899C15.9874 7.86609 15.5126 7.86609 15.2197 8.15899L10.5 12.8787L8.78033 11.159C8.48744 10.8661 8.01256 10.8661 7.71967 11.159C7.42678 11.4519 7.42678 11.9268 7.71967 12.2197L9.96967 14.4697C10.2626 14.7626 10.7374 14.7626 11.0303 14.4697L16.2803 9.21967Z" fill="#10b981"/></svg>' :
+                        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM11.25 7.5C11.25 6.94772 11.6977 6.5 12.25 6.5H12.75C13.3023 6.5 13.75 6.94772 13.75 7.5C13.75 8.05228 13.3023 8.5 12.75 8.5H12.25C11.6977 8.5 11.25 8.05228 11.25 7.5ZM12 10.25C12.4142 10.25 12.75 10.5858 12.75 11V16C12.75 16.4142 12.4142 16.75 12 16.75C11.5858 16.75 11.25 16.4142 11.25 16V11C11.25 10.5858 11.5858 10.25 12 10.25Z" fill="#ef4444"/></svg>'
+                    }
+                        </div>
+                        <div class="alert-text">
+                            <div class="alert-title">${type === 'success' ? 'Login Berhasil' : 'Login Gagal'}</div>
+                            <div class="alert-message">${message}</div>
+                        </div>
+                        <button class="alert-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                    </div>
+                `;
+
+                // Add styles
+                alert.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 10000;
+                    min-width: 350px;
+                    max-width: 450px;
+                    border-radius: 12px;
+                    padding: 16px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                    transform: translateX(100%);
+                    transition: all 0.3s ease;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                `;
+
+                const alertContent = alert.querySelector('.alert-content');
+                alertContent.style.cssText = `
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 12px;
+                `;
+
+                const alertIcon = alert.querySelector('.alert-icon');
+                alertIcon.style.cssText = `
+                    width: 24px;
+                    height: 24px;
+                    flex-shrink: 0;
+                    margin-top: 2px;
+                `;
+
+                const alertText = alert.querySelector('.alert-text');
+                alertText.style.cssText = `
+                    flex: 1;
+                `;
+
+                const alertTitle = alert.querySelector('.alert-title');
+                alertTitle.style.cssText = `
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #1f2937;
+                    margin-bottom: 4px;
+                    line-height: 1.4;
+                `;
+
+                const alertMessage = alert.querySelector('.alert-message');
+                alertMessage.style.cssText = `
+                    font-size: 13px;
+                    font-weight: 400;
+                    color: #6b7280;
+                    line-height: 1.4;
+                `;
+
+                const alertClose = alert.querySelector('.alert-close');
+                alertClose.style.cssText = `
+                    background: none;
+                    border: none;
+                    font-size: 20px;
+                    cursor: pointer;
+                    color: #9ca3af;
+                    padding: 0;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 50%;
+                    transition: all 0.2s;
+                    flex-shrink: 0;
+                `;
+
+                // Set colors based on type
+                if (type === 'success') {
+                    alert.style.background = '#ecfdf3';
+                    alert.style.border = '1px solid #10b981';
+                    alertTitle.style.color = '#065f46';
+                    alertMessage.style.color = '#047857';
+                    alertClose.style.color = '#10b981';
+                } else if (type === 'error') {
+                    alert.style.background = '#fef3f2';
+                    alert.style.border = '1px solid #ef4444';
+                    alertTitle.style.color = '#991b1b';
+                    alertMessage.style.color = '#b91c1c';
+                    alertClose.style.color = '#ef4444';
+                }
+
+                // Add hover effects
+                alertClose.addEventListener('mouseenter', () => {
+                    alertClose.style.background = 'rgba(0, 0, 0, 0.05)';
+                });
+                alertClose.addEventListener('mouseleave', () => {
+                    alertClose.style.background = 'none';
+                });
+
+                // Append to body
+                document.body.appendChild(alert);
+
+                // Animate in
                 setTimeout(() => {
-                    console.log('Welcome to JobFinder...');
-                    // window.location.href = '/dashboard';
+                    alert.style.transform = 'translateX(0)';
+                }, 100);
+
+                // Auto remove after 3 seconds
+                setTimeout(() => {
+                    if (alert.parentElement) {
+                        alert.style.transform = 'translateX(100%)';
+                        setTimeout(() => alert.remove(), 300);
+                    }
                 }, 3000);
             }
         }

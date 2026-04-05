@@ -1,0 +1,107 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Export Data Pelamar</title>
+        <style>
+            th { background-color: #4f46e5; color: white; padding: 8px; }
+            td { padding: 6px; border: 1px solid #ddd; }
+            table { border-collapse: collapse; width: 100%; }
+        </style>
+    </head>
+    <body>
+        <h2>Laporan Data Pelamar</h2>
+        <p>Tanggal Export: 04/04/2026 13:54:29</p>
+        <p>Total Data: 6 pelamar</p>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama Lengkap</th>
+                    <th>Email</th>
+                    <th>No. Telepon</th>
+                    <th>Jenis Kelamin</th>
+                    <th>Tanggal Lahir</th>
+                    <th>Provinsi</th>
+                    <th>Kota</th>
+                    <th>Lowongan Dilamar</th>
+                    <th>Status Lamaran</th>
+                    <th>Tanggal Lamaran</th>
+                </tr>
+            </thead>
+            <tbody><tr>
+            <td>1</td>
+            <td>User 123</td>
+            <td>funugepony@mailinator.com</td>
+            <td>085699359850</td>
+            <td>Laki-laki</td>
+            <td>10/02/2026</td>
+            <td>Aceh (NAD)</td>
+            <td>Bireuen</td>
+            <td>Front End Developer</td>
+            <td>Ditolak</td>
+            <td>10/02/2026 21:19</td>
+        </tr><tr>
+            <td>2</td>
+            <td>Siti Nuraini</td>
+            <td>sitinur@gmail.com</td>
+            <td>082233445566</td>
+            <td>Perempuan</td>
+            <td>21/08/2002</td>
+            <td>DKI Jakarta</td>
+            <td>Kota Jakarta Selatan</td>
+            <td>Web Design Developer</td>
+            <td>Diproses</td>
+            <td>06/02/2026 23:05</td>
+        </tr><tr>
+            <td>3</td>
+            <td>Rizky Re Maulanao</td>
+            <td>rizkymaulana@gmail.com</td>
+            <td>083344556677</td>
+            <td>Laki-laki</td>
+            <td>05/11/2001</td>
+            <td>Sulawesi Utara</td>
+            <td>Minahasa Tenggara</td>
+            <td>Web Design Developer</td>
+            <td>Diproses</td>
+            <td>06/02/2026 23:04</td>
+        </tr><tr>
+            <td>4</td>
+            <td>Siti Nuraini</td>
+            <td>sitinur@gmail.com</td>
+            <td>082233445566</td>
+            <td>Perempuan</td>
+            <td>21/08/2002</td>
+            <td>DKI Jakarta</td>
+            <td>Kota Jakarta Selatan</td>
+            <td>Web Design Developer</td>
+            <td>Diproses</td>
+            <td>14/01/2026 13:58</td>
+        </tr><tr>
+            <td>5</td>
+            <td>Rizky Re Maulanao</td>
+            <td>rizkymaulana@gmail.com</td>
+            <td>083344556677</td>
+            <td>Laki-laki</td>
+            <td>05/11/2001</td>
+            <td>Sulawesi Utara</td>
+            <td>Minahasa Tenggara</td>
+            <td>Web Design Developer</td>
+            <td>Ditolak</td>
+            <td>14/01/2026 13:58</td>
+        </tr><tr>
+            <td>6</td>
+            <td>Andika Putra Dwi ardy</td>
+            <td>andika@gmail.com</td>
+            <td>081234567111</td>
+            <td>Laki-laki</td>
+            <td>12/04/2003</td>
+            <td>Jawa Tengah</td>
+            <td>Kota Surakarta</td>
+            <td>Web Design Developer</td>
+            <td>Diterima</td>
+            <td>10/01/2025 00:00</td>
+        </tr></tbody>
+        </table>
+        <p style="margin-top: 20px; text-align: center;">Dicetak dari Sistem LinkUp - 2026</p>
+    </body>
+    </html>

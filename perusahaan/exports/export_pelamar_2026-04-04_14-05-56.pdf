@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Export Data Pelamar</title>
+        <style>
+            @page {
+                margin: 1cm;
+                size: A4 landscape;
+            }
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+                font-size: 11px;
+            }
+            h1 { 
+                color: #333; 
+                text-align: center; 
+                margin-bottom: 20px;
+                font-size: 18px;
+            }
+            .header-info {
+                margin-bottom: 20px;
+                font-size: 10px;
+                color: #666;
+            }
+            table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin-top: 20px; 
+            }
+            th, td { 
+                border: 1px solid #ddd; 
+                padding: 6px; 
+                text-align: left; 
+                font-size: 9px;
+            }
+            th { 
+                background-color: #4f46e5; 
+                color: white; 
+                font-weight: bold; 
+            }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .summary { 
+                margin-top: 20px; 
+                font-weight: bold; 
+                text-align: center;
+                font-size: 12px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>LAPORAN DATA PELAMAR</h1>
+        <div class="header-info">
+            <p>Tanggal Export: 04/04/2026 14:05:56</p>
+            <p>Total Data: 6 pelamar</p>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="5%">No</th>
+                    <th width="15%">Nama Lengkap</th>
+                    <th width="15%">Email</th>
+                    <th width="10%">No. Telepon</th>
+                    <th width="8%">JK</th>
+                    <th width="10%">Tgl Lahir</th>
+                    <th width="10%">Provinsi</th>
+                    <th width="10%">Kota</th>
+                    <th width="12%">Lowongan</th>
+                    <th width="10%">Status</th>
+                    <th width="10%">Tgl Lamaran</th>
+                </tr>
+            </thead>
+            <tbody><tr>
+            <td>1</td>
+            <td>User 123</td>
+            <td>funugepony@mailinator.com</td>
+            <td>085699359850</td>
+            <td>Laki-laki</td>
+            <td>10/02/2026</td>
+            <td>Aceh (NAD)</td>
+            <td>Bireuen</td>
+            <td>Front End Developer</td>
+            <td>Ditolak</td>
+            <td>10/02/2026</td>
+        </tr><tr>
+            <td>2</td>
+            <td>Siti Nuraini</td>
+            <td>sitinur@gmail.com</td>
+            <td>082233445566</td>
+            <td>Perempuan</td>
+            <td>21/08/2002</td>
+            <td>DKI Jakarta</td>
+            <td>Kota Jakarta Selatan</td>
+            <td>Web Design Developer</td>
+            <td>Diproses</td>
+            <td>06/02/2026</td>
+        </tr><tr>
+            <td>3</td>
+            <td>Rizky Re Maulanao</td>
+            <td>rizkymaulana@gmail.com</td>
+            <td>083344556677</td>
+            <td>Laki-laki</td>
+            <td>05/11/2001</td>
+            <td>Sulawesi Utara</td>
+            <td>Minahasa Tenggara</td>
+            <td>Web Design Developer</td>
+            <td>Diproses</td>
+            <td>06/02/2026</td>
+        </tr><tr>
+            <td>4</td>
+            <td>Siti Nuraini</td>
+            <td>sitinur@gmail.com</td>
+            <td>082233445566</td>
+            <td>Perempuan</td>
+            <td>21/08/2002</td>
+            <td>DKI Jakarta</td>
+            <td>Kota Jakarta Selatan</td>
+            <td>Web Design Developer</td>
+            <td>Diproses</td>
+            <td>14/01/2026</td>
+        </tr><tr>
+            <td>5</td>
+            <td>Rizky Re Maulanao</td>
+            <td>rizkymaulana@gmail.com</td>
+            <td>083344556677</td>
+            <td>Laki-laki</td>
+            <td>05/11/2001</td>
+            <td>Sulawesi Utara</td>
+            <td>Minahasa Tenggara</td>
+            <td>Web Design Developer</td>
+            <td>Ditolak</td>
+            <td>14/01/2026</td>
+        </tr><tr>
+            <td>6</td>
+            <td>Andika Putra Dwi ardy</td>
+            <td>andika@gmail.com</td>
+            <td>081234567111</td>
+            <td>Laki-laki</td>
+            <td>12/04/2003</td>
+            <td>Jawa Tengah</td>
+            <td>Kota Surakarta</td>
+            <td>Web Design Developer</td>
+            <td>Diterima</td>
+            <td>10/01/2025</td>
+        </tr></tbody>
+        </table>
+        <div class="summary">
+            <p>LAPORAN DATA PELAMAR - TOTAL 6 DATA</p>
+        </div>
+    </body>
+    </html>

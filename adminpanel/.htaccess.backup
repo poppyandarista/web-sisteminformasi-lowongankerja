@@ -1,0 +1,68 @@
+# Error Handling Configuration
+
+# Redirect semua HTTP error ke 404.php dengan status code
+
+# Error 400 - Bad Request
+
+ErrorDocument 400 /adminpanel/404.php
+
+# Error 401 - Unauthorized
+
+ErrorDocument 401 /adminpanel/404.php
+
+# Error 403 - Forbidden
+
+ErrorDocument 403 /adminpanel/404.php
+
+# Error 404 - Not Found
+
+ErrorDocument 404 /adminpanel/404.php
+
+# Error 500 - Internal Server Error
+
+ErrorDocument 500 /adminpanel/404.php
+
+# Error 503 - Service Unavailable
+
+ErrorDocument 503 /adminpanel/404.php
+
+# Prevent directory listing
+
+Options -Indexes
+
+# Disable script execution in images folder
+
+<FilesMatch "\.(php|phtml|php3|php4|php5|pl|py|jsp|asp|sh|cgi)$">
+Order deny,allow
+Deny from all
+</FilesMatch>
+
+# Protect sensitive files but allow error handler
+
+<FilesMatch "\.(htaccess|htpasswd)$">
+Order deny,allow
+Deny from all
+</FilesMatch>
+
+# Allow access to error handler
+
+<Files "404.php">
+Order allow,deny
+Allow from all
+</Files>
+
+# Hotlink protection untuk images (optional)
+
+# SetEnvIfNoCase Referer "^$" hotlink
+
+# SetEnvIfNoCase Referer "^http://(localhost|127\.0\.0\.1)" !hotlink
+
+# <FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
+
+# Order allow,deny
+
+# Allow from env=!hotlink
+
+# Deny from all
+
+# </FilesMatch>
