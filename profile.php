@@ -14,6 +14,21 @@ $user_id = $_SESSION['user_id'];
 // Get user profile data
 $profile = $db->get_user_profile($user_id);
 
+// Set default avatar path
+$default_avatar = 'assets/img/blank-pfp.jpg';
+
+// Function to get profile photo
+function getProfilePhoto($profile, $default_avatar)
+{
+    if (!empty($profile['foto_user'])) {
+        $foto_path = 'adminpanel/src/images/user/' . $profile['foto_user'];
+        if (file_exists($foto_path)) {
+            return $foto_path;
+        }
+    }
+    return $default_avatar;
+}
+
 // Get all provinces for dropdown
 $provinces = $db->get_all_provinces();
 
@@ -30,30 +45,39 @@ $message_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['update_profile'])) {
-        // Update profile data
-        $data = [
-            'nama_user' => $_POST['nama_user'] ?? '',
-            'nohp_user' => $_POST['nohp_user'] ?? '',
-            'tanggallahir_user' => $_POST['tanggallahir_user'] ?? null,
-            'jk_user' => $_POST['jk_user'] ?? '',
-            'deskripsi_user' => $_POST['deskripsi_user'] ?? '',
-            'kelebihan_user' => $_POST['kelebihan_user'] ?? '',
-            'riwayatpekerjaan_user' => $_POST['riwayatpekerjaan_user'] ?? '',
-            'prestasi_user' => $_POST['prestasi_user'] ?? '',
-            'instagram_user' => $_POST['instagram_user'] ?? '',
-            'facebook_user' => $_POST['facebook_user'] ?? '',
-            'linkedin_user' => $_POST['linkedin_user'] ?? '',
-            'id_provinsi' => $_POST['id_provinsi'] ? intval($_POST['id_provinsi']) : null,
-            'id_kota' => $_POST['id_kota'] ? intval($_POST['id_kota']) : null
-        ];
+        // Validasi tanggal lahir
+        $tanggal_lahir = $_POST['tanggallahir_user'] ?? null;
+        $ageValidation = validateAge($tanggal_lahir, 17);
 
-        if ($db->update_user_profile($user_id, $data)) {
-            $message = 'Profil berhasil diperbarui!';
-            $message_type = 'success';
-            $profile = $db->get_user_profile($user_id);
-        } else {
-            $message = 'Gagal memperbarui profil. Silakan coba lagi.';
+        if (!$ageValidation['valid']) {
+            $message = $ageValidation['message'];
             $message_type = 'danger';
+        } else {
+            // Update profile data
+            $data = [
+                'nama_user' => $_POST['nama_user'] ?? '',
+                'nohp_user' => $_POST['nohp_user'] ?? '',
+                'tanggallahir_user' => $tanggal_lahir,
+                'jk_user' => $_POST['jk_user'] ?? '',
+                'deskripsi_user' => $_POST['deskripsi_user'] ?? '',
+                'kelebihan_user' => $_POST['kelebihan_user'] ?? '',
+                'riwayatpekerjaan_user' => $_POST['riwayatpekerjaan_user'] ?? '',
+                'prestasi_user' => $_POST['prestasi_user'] ?? '',
+                'instagram_user' => $_POST['instagram_user'] ?? '',
+                'facebook_user' => $_POST['facebook_user'] ?? '',
+                'linkedin_user' => $_POST['linkedin_user'] ?? '',
+                'id_provinsi' => $_POST['id_provinsi'] ? intval($_POST['id_provinsi']) : null,
+                'id_kota' => $_POST['id_kota'] ? intval($_POST['id_kota']) : null
+            ];
+
+            if ($db->update_user_profile($user_id, $data)) {
+                $message = 'Profil berhasil diperbarui!';
+                $message_type = 'success';
+                $profile = $db->get_user_profile($user_id);
+            } else {
+                $message = 'Gagal memperbarui profil. Silakan coba lagi.';
+                $message_type = 'danger';
+            }
         }
     } elseif (isset($_POST['update_portfolio'])) {
         // Update portfolio
@@ -197,6 +221,36 @@ function formatDate($date)
     if (empty($date))
         return '';
     return date('Y-m-d', strtotime($date));
+}
+
+// Function to calculate age from birthdate
+function calculateAge($birthdate)
+{
+    if (empty($birthdate))
+        return 0;
+    $birthDate = new DateTime($birthdate);
+    $today = new DateTime('today');
+    $age = $birthDate->diff($today)->y;
+    return $age;
+}
+
+// Function to validate age (minimum 17 tahun)
+function validateAge($birthdate, $minAge = 17)
+{
+    if (empty($birthdate)) {
+        return ['valid' => false, 'message' => 'Tanggal lahir harus diisi'];
+    }
+
+    $age = calculateAge($birthdate);
+
+    if ($age < $minAge) {
+        return [
+            'valid' => false,
+            'message' => "Maaf, Anda harus berusia minimal $minAge tahun untuk mendaftar di platform ini. Saat ini usia Anda $age tahun."
+        ];
+    }
+
+    return ['valid' => true, 'message' => ''];
 }
 
 // ========== FUNGSI UNTUK EKSTRAK USERNAME DARI URL (VERSI AMAN) ==========
@@ -758,6 +812,131 @@ $linkedin_display = extractUsername($profile['linkedin_user'] ?? '', 'linkedin')
                 font-size: 18px;
             }
         }
+
+        .profile-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            /* Hapus background abu-abu */
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: transparent;
+            /* Ganti dari var(--gray-bg) jadi transparent */
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .info-item:hover {
+            background: #f8f9fa;
+            /* Hanya hover aja yang kasih efek */
+            transform: translateX(5px);
+        }
+
+        .skill-tag {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .achievement-card,
+        .work-card {
+            background: transparent;
+            /* Ganti dari var(--gray-bg) jadi transparent */
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+
+        .achievement-card:hover,
+        .work-card:hover {
+            background: #f8f9fa;
+            /* Hanya hover aja yang kasih efek */
+            transform: translateX(5px);
+        }
+
+        .portfolio-card {
+            background: transparent;
+            /* Ganti dari var(--gray-bg) jadi transparent */
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .portfolio-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .social-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: transparent;
+            /* Ganti dari var(--gray-bg) jadi transparent */
+            border-radius: 10px;
+            margin-bottom: 10px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: 1px solid #e9ecef;
+        }
+
+        .social-item:hover {
+            transform: translateX(5px);
+            background: #f8f9fa;
+            border-color: var(--primary);
+        }
+
+        /* Untuk image placeholder jika gagal load */
+        .profile-avatar[src="assets/img/blank-pfp.jpg"],
+        .photo-preview[src="assets/img/blank-pfp.jpg"] {
+            object-fit: contain;
+        }
+
+        /* Age info styling */
+        .age-info {
+            font-size: 12px;
+            margin-top: 5px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .age-info i {
+            margin-right: 5px;
+        }
+
+        .age-info.warning {
+            color: #ff7043;
+            background: #fff3e0;
+        }
+
+        .age-info.info {
+            color: #ff9800;
+            background: #fff8e1;
+        }
+
+        .age-info.success {
+            color: #10b981;
+            background: #e8f5e9;
+        }
     </style>
 </head>
 
@@ -770,13 +949,8 @@ $linkedin_display = extractUsername($profile['linkedin_user'] ?? '', 'linkedin')
             <div class="row justify-content-center">
                 <div class="col-lg-8 text-center">
                     <?php
-                    $default_avatar = 'assets/img/default-avatar.png';
-                    $foto = $default_avatar;
-                    if (!empty($profile['foto_user'])) {
-                        $foto_path = 'adminpanel/src/images/user/' . $profile['foto_user'];
-                        if (file_exists($foto_path))
-                            $foto = $foto_path;
-                    }
+                    // Get profile photo with default fallback
+                    $foto = getProfilePhoto($profile, $default_avatar);
                     ?>
                     <img src="<?php echo $foto; ?>" alt="Profile" class="profile-avatar">
                     <h1 class="profile-name">
@@ -805,10 +979,12 @@ $linkedin_display = extractUsername($profile['linkedin_user'] ?? '', 'linkedin')
                 <!-- LEFT COLUMN -->
                 <div class="col-lg-4">
                     <!-- Foto Profil -->
+                    <!-- Foto Profil -->
                     <div class="profile-card">
                         <h3><i class="fas fa-camera"></i> Foto Profil</h3>
                         <div class="photo-upload">
                             <?php
+                            // Preview photo with default fallback
                             $preview_foto = $default_avatar;
                             if (!empty($profile['foto_user']) && file_exists('adminpanel/src/images/user/' . $profile['foto_user'])) {
                                 $preview_foto = 'adminpanel/src/images/user/' . $profile['foto_user'];
@@ -1270,6 +1446,164 @@ $linkedin_display = extractUsername($profile['linkedin_user'] ?? '', 'linkedin')
                 }
             }
         }
+
+        // Handle image loading error - fallback to default avatar
+        document.querySelectorAll('.profile-avatar, .photo-preview').forEach(img => {
+            img.onerror = function () {
+                this.src = 'assets/img/blank-pfp.jpg';
+                this.style.objectFit = 'contain';
+                this.style.backgroundColor = '#e9ecef';
+                this.style.padding = '20px';
+            };
+        });
+
+        // Preview photo function (already exists, just make sure it works)
+        function previewPhoto(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var preview = document.getElementById('photoPreview');
+                    preview.src = e.target.result;
+                    preview.style.objectFit = 'cover';
+                    preview.style.padding = '0';
+                    preview.style.backgroundColor = 'transparent';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Rest of your existing functions...
+        function loadCities() {
+            var provinceId = document.getElementById('provinsi').value;
+            var citySelect = document.getElementById('kota');
+            if (provinceId) {
+                fetch('config/get_cities.php?province_id=' + provinceId)
+                    .then(response => response.json())
+                    .then(data => {
+                        citySelect.innerHTML = '<option value="">Pilih Kota</option>';
+                        data.forEach(city => {
+                            citySelect.innerHTML += '<option value="' + city.id_kota + '">' + city.nama_kota + '</option>';
+                        });
+                    })
+                    .catch(error => console.error('Error:', error));
+            } else {
+                citySelect.innerHTML = '<option value="">Pilih Kota</option>';
+            }
+        }
+
+        function toggleAccordion(id) {
+            var content = document.getElementById(id);
+            var icon = document.getElementById(id + 'Icon');
+
+            if (content.classList.contains('show')) {
+                content.classList.remove('show');
+                if (icon) {
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
+                }
+            } else {
+                content.classList.add('show');
+                if (icon) {
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                }
+            }
+        }
+
+        // Validasi umur saat submit form edit profil
+        document.querySelector('form[method="POST"]')?.addEventListener('submit', function (e) {
+            // Cek apakah ini form update profil
+            if (e.target.querySelector('input[name="tanggallahir_user"]')) {
+                const birthInput = e.target.querySelector('input[name="tanggallahir_user"]');
+                const birthDate = birthInput.value;
+
+                if (birthDate) {
+                    const today = new Date();
+                    const birth = new Date(birthDate);
+                    let age = today.getFullYear() - birth.getFullYear();
+                    const monthDiff = today.getMonth() - birth.getMonth();
+
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+                        age--;
+                    }
+
+                    const minAge = 17;
+
+                    if (age < minAge) {
+                        e.preventDefault();
+                        alert(`Maaf, Anda harus berusia minimal ${minAge} tahun untuk mendaftar di platform ini.\nSaat ini usia Anda ${age} tahun.`);
+                        birthInput.focus();
+                        return false;
+                    }
+
+                    // Tampilkan pesan konfirmasi usia
+                    if (age >= 17 && age < 18) {
+                        const confirmMsg = `Usia Anda ${age} tahun. Anda dapat mendaftar untuk:\n- Magang (Internship)\n- Freelance\n- Part-time\n\nAnda belum memenuhi syarat untuk Full-time (minimal 18 tahun).\n\nLanjutkan menyimpan profil?`;
+                        if (!confirm(confirmMsg)) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    } else if (age >= 18) {
+                        const confirmMsg = `Usia Anda ${age} tahun. Anda memenuhi syarat untuk semua jenis pekerjaan.\n\nLanjutkan menyimpan profil?`;
+                        if (!confirm(confirmMsg)) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    }
+                }
+            }
+        });
+
+        // Fungsi untuk menampilkan info usia saat memilih tanggal lahir
+        function setupAgeInfo() {
+            const birthInput = document.querySelector('input[name="tanggallahir_user"]');
+            if (birthInput) {
+                // Buat elemen info usia
+                const ageInfo = document.createElement('small');
+                ageInfo.className = 'text-muted mt-1 d-block';
+                ageInfo.style.fontSize = '12px';
+                ageInfo.style.marginTop = '5px';
+                birthInput.parentNode.appendChild(ageInfo);
+
+                // Update info usia saat tanggal berubah
+                birthInput.addEventListener('change', function () {
+                    const birthDate = this.value;
+                    if (birthDate) {
+                        const today = new Date();
+                        const birth = new Date(birthDate);
+                        let age = today.getFullYear() - birth.getFullYear();
+                        const monthDiff = today.getMonth() - birth.getMonth();
+
+                        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+                            age--;
+                        }
+
+                        if (age < 17) {
+                            ageInfo.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ⚠️ Usia Anda ' + age + ' tahun. Minimal usia 17 tahun untuk dapat melamar pekerjaan.';
+                            ageInfo.style.color = '#ff7043';
+                        } else if (age >= 17 && age < 18) {
+                            ageInfo.innerHTML = '<i class="fas fa-info-circle"></i> ℹ️ Usia Anda ' + age + ' tahun. Anda dapat melamar: Magang, Freelance, Part-time. Full-time membutuhkan minimal 18 tahun.';
+                            ageInfo.style.color = '#ff9800';
+                        } else {
+                            ageInfo.innerHTML = '<i class="fas fa-check-circle"></i> ✅ Usia Anda ' + age + ' tahun. Anda memenuhi syarat untuk semua jenis pekerjaan.';
+                            ageInfo.style.color = '#10b981';
+                        }
+                    } else {
+                        ageInfo.innerHTML = '';
+                    }
+                });
+
+                // Trigger change jika sudah ada nilai
+                if (birthInput.value) {
+                    birthInput.dispatchEvent(new Event('change'));
+                }
+            }
+        }
+
+        // Panggil fungsi saat halaman load
+        document.addEventListener('DOMContentLoaded', function () {
+            setupAgeInfo();
+        });
     </script>
 </body>
 

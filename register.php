@@ -1,10 +1,117 @@
+<?php
+session_start();
+require_once 'config/database.php';
+
+$db = new database();
+
+// Cek apakah user sudah login
+if (isset($_SESSION['user_id'])) {
+    header('Location: index.php');
+    exit();
+}
+
+// Handle registrasi form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $fullname = trim($_POST['fullname'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    $errors = [];
+
+    // Validasi input
+    if (empty($fullname)) {
+        $errors['fullname'] = 'Nama lengkap harus diisi';
+    } elseif (strlen($fullname) < 3) {
+        $errors['fullname'] = 'Nama minimal 3 karakter';
+    }
+
+    if (empty($email)) {
+        $errors['email'] = 'Email harus diisi';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors['email'] = 'Format email tidak valid';
+    }
+
+    if (empty($password)) {
+        $errors['password'] = 'Password harus diisi';
+    } elseif (strlen($password) < 6) {
+        $errors['password'] = 'Password minimal 6 karakter';
+    }
+
+    // Cek apakah email sudah terdaftar
+    if (empty($errors)) {
+        $check_query = "SELECT id_user FROM user WHERE email_user = ?";
+        $check_stmt = $db->koneksi->prepare($check_query);
+        $check_stmt->bind_param("s", $email);
+        $check_stmt->execute();
+        $check_result = $check_stmt->get_result();
+
+        if ($check_result->num_rows > 0) {
+            $errors['email'] = 'Email sudah terdaftar. Silakan gunakan email lain.';
+        }
+        $check_stmt->close();
+    }
+
+    // Jika tidak ada error, simpan ke database
+    if (empty($errors)) {
+        // Hash password
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+        // Buat username dari email (sebelum @)
+        $username = explode('@', $email)[0];
+
+        // Insert ke tabel user
+        $query = "INSERT INTO user (email_user, password_user, username_user) VALUES (?, ?, ?)";
+        $stmt = $db->koneksi->prepare($query);
+        $stmt->bind_param("sss", $email, $hashed_password, $username);
+
+        if ($stmt->execute()) {
+            $user_id = $db->koneksi->insert_id;
+
+            // Insert ke tabel profil
+            $profile_query = "INSERT INTO profil (id_user, nama_user) VALUES (?, ?)";
+            $profile_stmt = $db->koneksi->prepare($profile_query);
+            $profile_stmt->bind_param("is", $user_id, $fullname);
+            $profile_stmt->execute();
+            $profile_stmt->close();
+
+            // Set session
+            $_SESSION['user_id'] = $user_id;
+            $_SESSION['email'] = $email;
+            $_SESSION['username'] = $username;
+            $_SESSION['fullname'] = $fullname;
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Registrasi berhasil! Mengalihkan ke halaman utama...',
+                'redirect' => 'index.php'
+            ]);
+            exit();
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Registrasi gagal: ' . $stmt->error
+            ]);
+            exit();
+        }
+        $stmt->close();
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Registrasi gagal. Periksa kembali data Anda.',
+            'errors' => $errors
+        ]);
+        exit();
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register | Login</title>
+    <title>LinkUp | Daftar</title>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="assets/img/favicon.png">
     <style>
@@ -27,7 +134,6 @@
             overflow: hidden;
         }
 
-        /* Professional Background Elements */
         .professional-background {
             position: fixed;
             top: 0;
@@ -144,24 +250,6 @@
             color: #3d8eff;
         }
 
-        .career-logo svg {
-            position: relative;
-            z-index: 2;
-            animation: careerBreath 4s ease-in-out infinite;
-        }
-
-        @keyframes careerBreath {
-
-            0%,
-            100% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.05);
-            }
-        }
-
         .career-glow {
             position: absolute;
             top: 0;
@@ -201,7 +289,6 @@
             font-weight: 400;
         }
 
-        /* Professional Form Fields */
         .professional-field {
             position: relative;
             margin-bottom: 32px;
@@ -267,6 +354,20 @@
             box-shadow: 0 0 0 2px rgba(61, 142, 255, 0.2);
         }
 
+        /* Success state untuk input field */
+        .professional-field.success .field-professional {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .professional-field.success label {
+            color: #10b981;
+        }
+
+        .professional-field.success .career-sprout {
+            background: #10b981;
+        }
+
         .growth-indicator {
             position: absolute;
             right: 20px;
@@ -284,30 +385,13 @@
             border-radius: 50%;
             opacity: 0;
             transform: scale(0);
-            animation: sproutGrow 0.5s ease-out forwards;
+            transition: all 0.3s ease;
         }
 
         .professional-field input:focus~.growth-indicator .career-sprout,
         .professional-field input:valid~.growth-indicator .career-sprout {
             opacity: 1;
             transform: scale(1);
-        }
-
-        @keyframes sproutGrow {
-            0% {
-                opacity: 0;
-                transform: scale(0);
-            }
-
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        /* Professional Toggle */
-        .professional-field:has(.professional-toggle) input {
-            padding-right: 48px;
         }
 
         .professional-toggle {
@@ -346,95 +430,6 @@
             display: block;
         }
 
-        /* Career Options */
-        .career-options {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 36px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .career-checkbox {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            font-size: 14px;
-            color: #3d8eff;
-            font-weight: 500;
-        }
-
-        .career-checkbox input[type="checkbox"] {
-            display: none;
-        }
-
-        .checkbox-career {
-            width: 22px;
-            height: 22px;
-            margin-right: 12px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .career-shape {
-            width: 100%;
-            height: 100%;
-            background: rgba(61, 142, 255, 0.1);
-            border: 1.5px solid rgba(61, 142, 255, 0.3);
-            border-radius: 4px;
-            transition: all 0.3s ease;
-            position: absolute;
-        }
-
-        .checkbox-career svg {
-            color: transparent;
-            transition: color 0.3s ease;
-            position: relative;
-            z-index: 1;
-        }
-
-        .career-checkbox input[type="checkbox"]:checked+.checkbox-career .career-shape {
-            background: #3d8eff;
-            border-color: #3d8eff;
-            box-shadow: 0 0 12px rgba(61, 142, 255, 0.4);
-        }
-
-        .career-checkbox input[type="checkbox"]:checked+.checkbox-career svg {
-            color: #ffffff;
-        }
-
-        .career-link {
-            color: #3d8eff;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .career-link::after {
-            content: "";
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #3d8eff, #5da1ff);
-            transition: width 0.3s ease;
-        }
-
-        .career-link:hover::after {
-            width: 100%;
-        }
-
-        .career-link:hover {
-            color: #2a6fd1;
-        }
-
-        /* Career Button */
         .career-button {
             width: 100%;
             background: transparent;
@@ -469,10 +464,6 @@
         .career-button:hover .button-career {
             background: linear-gradient(135deg, #2a6fd1, #3d8eff, #5da1ff);
             transform: scale(1.02);
-        }
-
-        .career-button:active .button-career {
-            transform: scale(0.98);
         }
 
         .button-text {
@@ -529,128 +520,6 @@
             opacity: 1;
         }
 
-        .button-aura {
-            position: absolute;
-            top: -3px;
-            left: -3px;
-            right: -3px;
-            bottom: -3px;
-            background: linear-gradient(135deg, #3d8eff, #7db4ff);
-            border-radius: 23px;
-            opacity: 0;
-            filter: blur(12px);
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-
-        .career-button:hover .button-aura {
-            opacity: 0.6;
-        }
-
-        /* Career Divider */
-        .career-divider {
-            display: flex;
-            align-items: center;
-            margin: 32px 0;
-            gap: 16px;
-        }
-
-        .divider-branch {
-            flex: 1;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(61, 142, 255, 0.4), transparent);
-        }
-
-        .divider-center {
-            color: #3d8eff;
-            opacity: 0.7;
-            animation: centerPulse 3s ease-in-out infinite;
-        }
-
-        @keyframes centerPulse {
-
-            0%,
-            100% {
-                opacity: 0.7;
-                transform: scale(1);
-            }
-
-            50% {
-                opacity: 1;
-                transform: scale(1.1);
-            }
-        }
-
-        /* Professional Social */
-        .professional-social {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 32px;
-        }
-
-        .career-social {
-            flex: 1;
-            background: transparent;
-            color: #3d8eff;
-            border: none;
-            border-radius: 16px;
-            padding: 14px 16px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 14px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            min-height: 48px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .social-career {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(61, 142, 255, 0.1);
-            border: 1.5px solid rgba(61, 142, 255, 0.2);
-            border-radius: 16px;
-            transition: all 0.3s ease;
-        }
-
-        .career-social:hover .social-career {
-            background: rgba(61, 142, 255, 0.15);
-            border-color: rgba(61, 142, 255, 0.4);
-        }
-
-        .career-social span,
-        .career-social svg {
-            position: relative;
-            z-index: 2;
-        }
-
-        .social-glow {
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: rgba(61, 142, 255, 0.3);
-            border-radius: 18px;
-            opacity: 0;
-            filter: blur(8px);
-            transition: opacity 0.3s ease;
-            z-index: 0;
-        }
-
-        .career-social:hover .social-glow {
-            opacity: 1;
-        }
-
-        /* Career Signup */
         .career-signup {
             text-align: center;
             font-size: 14px;
@@ -684,7 +553,6 @@
             color: #2a6fd1;
         }
 
-        /* Gentle Error */
         .gentle-error {
             color: #ff7043;
             font-size: 12px;
@@ -699,8 +567,6 @@
             transition: all 0.3s ease;
             z-index: 5;
             text-align: left;
-            white-space: nowrap;
-            overflow: visible;
         }
 
         .gentle-error.show {
@@ -717,7 +583,7 @@
             color: #ff5722;
         }
 
-        /* Career Success */
+        /* Career Success Animation */
         .career-success {
             display: none;
             text-align: center;
@@ -824,39 +690,13 @@
             font-size: 14px;
         }
 
-        /* Mobile Responsive */
         @media (max-width: 480px) {
-            body {
-                padding: 16px;
-            }
-
             .career-card {
                 padding: 36px 28px;
-                border-radius: 24px;
             }
 
             .career-header h1 {
                 font-size: 1.75rem;
-            }
-
-            .career-logo {
-                width: 60px;
-                height: 60px;
-            }
-
-            .career-options {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 16px;
-            }
-
-            .professional-social {
-                flex-direction: column;
-            }
-
-            .floating-icon {
-                width: 20px;
-                height: 20px;
             }
         }
     </style>
@@ -896,18 +736,17 @@
 
             <div class="career-header">
                 <div class="career-logo">
-                    <img src="assets/img/favicon.png" alt="LinkUp Logo"
-                        style="width: 100%; height: auto; max-width: 300px;">
+                    <img src="assets/img/favicon.png" alt="LinkUp Logo" style="width: 100%; height: auto;">
                     <div class="career-glow"></div>
                 </div>
                 <h1>LinkUp</h1>
                 <p>Baru di LinkUp? Bergabunglah dengan ribuan profesional!</p>
             </div>
 
-            <form class="harmony-form" id="loginForm" novalidate>
-                <div class="professional-field">
+            <form class="harmony-form" id="registerForm" method="POST" action="register.php">
+                <div class="professional-field" id="fullnameField">
                     <div class="field-professional"></div>
-                    <input type="text" id="fullname" name="fullname" required autocomplete="name">
+                    <input type="text" id="fullname" name="fullname" required autocomplete="name" placeholder=" ">
                     <label for="fullname">Nama Lengkap</label>
                     <div class="growth-indicator">
                         <div class="career-sprout"></div>
@@ -915,9 +754,9 @@
                     <span class="gentle-error" id="fullnameError"></span>
                 </div>
 
-                <div class="professional-field">
+                <div class="professional-field" id="emailField">
                     <div class="field-professional"></div>
-                    <input type="email" id="email" name="email" required autocomplete="email">
+                    <input type="email" id="email" name="email" required autocomplete="email" placeholder=" ">
                     <label for="email">Email</label>
                     <div class="growth-indicator">
                         <div class="career-sprout"></div>
@@ -925,9 +764,10 @@
                     <span class="gentle-error" id="emailError"></span>
                 </div>
 
-                <div class="professional-field">
+                <div class="professional-field" id="passwordField">
                     <div class="field-professional"></div>
-                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                    <input type="password" id="password" name="password" required autocomplete="new-password"
+                        placeholder=" ">
                     <label for="password">Kata Sandi</label>
                     <button type="button" class="professional-toggle" id="passwordToggle"
                         aria-label="Toggle password visibility">
@@ -948,13 +788,12 @@
 
                 <button type="submit" class="career-button">
                     <div class="button-career"></div>
-                    <span class="button-text">Sign Up</span>
+                    <span class="button-text">Daftar</span>
                     <div class="button-growth">
                         <div class="growing-circle circle-1"></div>
                         <div class="growing-circle circle-2"></div>
                         <div class="growing-circle circle-3"></div>
                     </div>
-                    <div class="button-aura"></div>
                 </button>
             </form>
 
@@ -975,284 +814,376 @@
                         </svg>
                     </div>
                 </div>
-                <h3>Welcome to JobFinder</h3>
-                <p>Your dream job awaits...</p>
+                <h3>Selamat Datang!</h3>
+                <p>Akun Anda berhasil dibuat. Mengalihkan ke halaman utama...</p>
             </div>
+
+            <script>
+                class RegisterForm {
+                    constructor() {
+                        this.form = document.getElementById('registerForm');
+                        this.fullnameInput = document.getElementById('fullname');
+                        this.emailInput = document.getElementById('email');
+                        this.passwordInput = document.getElementById('password');
+                        this.passwordToggle = document.getElementById('passwordToggle');
+                        this.submitButton = this.form.querySelector('.career-button');
+                        this.successMessage = document.getElementById('successMessage');
+
+                        this.init();
+                    }
+
+                    init() {
+                        this.bindEvents();
+                        this.setupPasswordToggle();
+                        this.setupPlaceholders();
+                        this.setupInputValidation();
+                    }
+
+                    bindEvents() {
+                        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+                        this.fullnameInput.addEventListener('blur', () => this.validateFullname());
+                        this.emailInput.addEventListener('blur', () => this.validateEmail());
+                        this.passwordInput.addEventListener('blur', () => this.validatePassword());
+                        this.fullnameInput.addEventListener('input', () => this.clearError('fullname'));
+                        this.emailInput.addEventListener('input', () => this.clearError('email'));
+                        this.passwordInput.addEventListener('input', () => this.clearError('password'));
+                    }
+
+                    setupPlaceholders() {
+                        this.fullnameInput.setAttribute('placeholder', ' ');
+                        this.emailInput.setAttribute('placeholder', ' ');
+                        this.passwordInput.setAttribute('placeholder', ' ');
+                    }
+
+                    setupPasswordToggle() {
+                        this.passwordToggle.addEventListener('click', () => {
+                            const type = this.passwordInput.type === 'password' ? 'text' : 'password';
+                            this.passwordInput.type = type;
+                            this.passwordToggle.classList.toggle('toggle-visible', type === 'text');
+                        });
+                    }
+
+                    setupInputValidation() {
+                        // Real-time validation dengan efek success
+                        this.fullnameInput.addEventListener('input', () => {
+                            if (this.fullnameInput.value.trim().length >= 3) {
+                                this.showSuccess('fullnameField');
+                            } else {
+                                this.removeSuccess('fullnameField');
+                            }
+                        });
+
+                        this.emailInput.addEventListener('input', () => {
+                            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                            if (emailRegex.test(this.emailInput.value.trim())) {
+                                this.showSuccess('emailField');
+                            } else {
+                                this.removeSuccess('emailField');
+                            }
+                        });
+
+                        this.passwordInput.addEventListener('input', () => {
+                            if (this.passwordInput.value.length >= 6) {
+                                this.showSuccess('passwordField');
+                            } else {
+                                this.removeSuccess('passwordField');
+                            }
+                        });
+                    }
+
+                    showSuccess(fieldId) {
+                        const field = document.getElementById(fieldId);
+                        field.classList.add('success');
+                    }
+
+                    removeSuccess(fieldId) {
+                        const field = document.getElementById(fieldId);
+                        field.classList.remove('success');
+                    }
+
+                    validateFullname() {
+                        const fullname = this.fullnameInput.value.trim();
+                        if (!fullname) {
+                            this.showError('fullname', 'Mohon masukkan nama lengkap');
+                            this.removeSuccess('fullnameField');
+                            return false;
+                        }
+                        if (fullname.length < 3) {
+                            this.showError('fullname', 'Nama minimal 3 karakter');
+                            this.removeSuccess('fullnameField');
+                            return false;
+                        }
+                        this.clearError('fullname');
+                        this.showSuccess('fullnameField');
+                        return true;
+                    }
+
+                    validateEmail() {
+                        const email = this.emailInput.value.trim();
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!email) {
+                            this.showError('email', 'Mohon masukkan alamat email');
+                            this.removeSuccess('emailField');
+                            return false;
+                        }
+                        if (!emailRegex.test(email)) {
+                            this.showError('email', 'Format email tidak valid');
+                            this.removeSuccess('emailField');
+                            return false;
+                        }
+                        this.clearError('email');
+                        this.showSuccess('emailField');
+                        return true;
+                    }
+
+                    validatePassword() {
+                        const password = this.passwordInput.value;
+                        if (!password) {
+                            this.showError('password', 'Mohon masukkan kata sandi');
+                            this.removeSuccess('passwordField');
+                            return false;
+                        }
+                        if (password.length < 6) {
+                            this.showError('password', 'Kata sandi minimal 6 karakter');
+                            this.removeSuccess('passwordField');
+                            return false;
+                        }
+                        this.clearError('password');
+                        this.showSuccess('passwordField');
+                        return true;
+                    }
+
+                    showError(field, message) {
+                        const inputField = document.getElementById(field);
+                        const professionalField = inputField.closest('.professional-field');
+                        const errorElement = document.getElementById(`${field}Error`);
+                        professionalField.classList.add('error');
+                        professionalField.classList.remove('success');
+                        errorElement.textContent = message;
+                        errorElement.classList.add('show');
+                    }
+
+                    clearError(field) {
+                        const inputField = document.getElementById(field);
+                        const professionalField = inputField?.closest('.professional-field');
+                        const errorElement = document.getElementById(`${field}Error`);
+                        if (professionalField) {
+                            professionalField.classList.remove('error');
+                        }
+                        if (errorElement) {
+                            errorElement.classList.remove('show');
+                            setTimeout(() => { errorElement.textContent = ''; }, 300);
+                        }
+                    }
+
+                    showAlert(type, message) {
+                        // Remove existing alerts
+                        const existingAlert = document.querySelector('.custom-alert');
+                        if (existingAlert) {
+                            existingAlert.remove();
+                        }
+
+                        // Create alert element
+                        const alert = document.createElement('div');
+                        alert.className = `custom-alert alert-${type}`;
+                        alert.innerHTML = `
+        <div class="alert-content">
+            <div class="alert-icon">
+                ${type === 'success' ?
+                                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM16.2803 9.21967C16.5732 8.92678 16.5732 8.4519 16.2803 8.15899C15.9874 7.86609 15.5126 7.86609 15.2197 8.15899L10.5 12.8787L8.78033 11.159C8.48744 10.8661 8.01256 10.8661 7.71967 11.159C7.42678 11.4519 7.42678 11.9268 7.71967 12.2197L9.96967 14.4697C10.2626 14.7626 10.7374 14.7626 11.0303 14.4697L16.2803 9.21967Z" fill="#10b981"/></svg>' :
+                                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM11.25 7.5C11.25 6.94772 11.6977 6.5 12.25 6.5H12.75C13.3023 6.5 13.75 6.94772 13.75 7.5C13.75 8.05228 13.3023 8.5 12.75 8.5H12.25C11.6977 8.5 11.25 8.05228 11.25 7.5ZM12 10.25C12.4142 10.25 12.75 10.5858 12.75 11V16C12.75 16.4142 12.4142 16.75 12 16.75C11.5858 16.75 11.25 16.4142 11.25 16V11C11.25 10.5858 11.5858 10.25 12 10.25Z" fill="#ef4444"/></svg>'
+                            }
+            </div>
+            <div class="alert-text">
+                <div class="alert-title">${type === 'success' ? 'Registrasi Berhasil' : 'Registrasi Gagal'}</div>
+                <div class="alert-message">${message}</div>
+            </div>
+            <button class="alert-close" onclick="this.parentElement.parentElement.remove()">×</button>
         </div>
-    </div>
+    `;
 
-    <script>
-        // Job Portal Login Form JavaScript
-        class JobFinderLoginForm {
-            constructor() {
-                this.form = document.getElementById('loginForm');
-                this.fullnameInput = document.getElementById('fullname');
-                this.emailInput = document.getElementById('email');
-                this.passwordInput = document.getElementById('password');
-                this.passwordToggle = document.getElementById('passwordToggle');
-                this.submitButton = this.form.querySelector('.career-button');
-                this.successMessage = document.getElementById('successMessage');
-                this.socialButtons = document.querySelectorAll('.career-social');
+                        // Add styles
+                        alert.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        min-width: 350px;
+        max-width: 450px;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
 
-                this.init();
-            }
+                        const alertContent = alert.querySelector('.alert-content');
+                        alertContent.style.cssText = `
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    `;
 
-            init() {
-                this.bindEvents();
-                this.setupPasswordToggle();
-                this.setupSocialButtons();
-                this.setupCareerEffects();
-            }
+                        const alertIcon = alert.querySelector('.alert-icon');
+                        alertIcon.style.cssText = `
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        margin-top: 2px;
+    `;
 
-            bindEvents() {
-                this.form.addEventListener('submit', (e) => this.handleSubmit(e));
-                this.fullnameInput.addEventListener('blur', () => this.validateFullname());
-                this.emailInput.addEventListener('blur', () => this.validateEmail());
-                this.passwordInput.addEventListener('blur', () => this.validatePassword());
-                this.fullnameInput.addEventListener('input', () => this.clearError('fullname'));
-                this.emailInput.addEventListener('input', () => this.clearError('email'));
-                this.passwordInput.addEventListener('input', () => this.clearError('password'));
+                        const alertText = alert.querySelector('.alert-text');
+                        alertText.style.cssText = `
+        flex: 1;
+    `;
 
-                // Add placeholder for label animations
-                this.fullnameInput.setAttribute('placeholder', ' ');
-                this.emailInput.setAttribute('placeholder', ' ');
-                this.passwordInput.setAttribute('placeholder', ' ');
-            }
+                        const alertTitle = alert.querySelector('.alert-title');
+                        alertTitle.style.cssText = `
+        font-size: 14px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 4px;
+        line-height: 1.4;
+    `;
 
-            setupPasswordToggle() {
-                this.passwordToggle.addEventListener('click', () => {
-                    const type = this.passwordInput.type === 'password' ? 'text' : 'password';
-                    this.passwordInput.type = type;
+                        const alertMessage = alert.querySelector('.alert-message');
+                        alertMessage.style.cssText = `
+        font-size: 13px;
+        font-weight: 400;
+        color: #6b7280;
+        line-height: 1.4;
+    `;
 
-                    this.passwordToggle.classList.toggle('toggle-visible', type === 'text');
+                        const alertClose = alert.querySelector('.alert-close');
+                        alertClose.style.cssText = `
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #9ca3af;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    `;
+
+                        // Set colors based on type
+                        if (type === 'success') {
+                            alert.style.background = '#ecfdf3';
+                            alert.style.border = '1px solid #10b981';
+                            alertTitle.style.color = '#065f46';
+                            alertMessage.style.color = '#047857';
+                            alertClose.style.color = '#10b981';
+                        } else if (type === 'error') {
+                            alert.style.background = '#fef3f2';
+                            alert.style.border = '1px solid #ef4444';
+                            alertTitle.style.color = '#991b1b';
+                            alertMessage.style.color = '#b91c1c';
+                            alertClose.style.color = '#ef4444';
+                        }
+
+                        // Add hover effects
+                        alertClose.addEventListener('mouseenter', () => {
+                            alertClose.style.background = 'rgba(0, 0, 0, 0.05)';
+                        });
+                        alertClose.addEventListener('mouseleave', () => {
+                            alertClose.style.background = 'none';
+                        });
+
+                        // Append to body
+                        document.body.appendChild(alert);
+
+                        // Animate in
+                        setTimeout(() => {
+                            alert.style.transform = 'translateX(0)';
+                        }, 100);
+
+                        // Auto remove after 3 seconds
+                        setTimeout(() => {
+                            if (alert.parentElement) {
+                                alert.style.transform = 'translateX(100%)';
+                                setTimeout(() => alert.remove(), 300);
+                            }
+                        }, 3000);
+                    }
+
+                    showCareerSuccess() {
+                        // Hide form with transition
+                        this.form.style.transform = 'scale(0.95)';
+                        this.form.style.opacity = '0';
+
+                        setTimeout(() => {
+                            this.form.style.display = 'none';
+                            // Hapus baris document.querySelector('.professional-social') karena tidak ada di register
+                            document.querySelector('.career-signup').style.display = 'none';
+                            // Hapus baris document.querySelector('.career-divider') karena tidak ada di register
+
+                            // Show success message with custom alert (SAMA PERSIS DENGAN LOGIN)
+                            this.showAlert('success', 'Registrasi Berhasil! Mengalihkan ke halaman utama...');
+                            this.successMessage.classList.add('show');
+
+                        }, 300);
+                    }
+
+                    async handleSubmit(e) {
+                        e.preventDefault();
+
+                        const isFullnameValid = this.validateFullname();
+                        const isEmailValid = this.validateEmail();
+                        const isPasswordValid = this.validatePassword();
+
+                        if (!isFullnameValid || !isEmailValid || !isPasswordValid) {
+                            return;
+                        }
+
+                        this.setLoading(true);
+
+                        try {
+                            const formData = new FormData(this.form);
+                            const response = await fetch('register.php', {
+                                method: 'POST',
+                                body: formData
+                            });
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                this.showCareerSuccess();
+                                setTimeout(() => {
+                                    window.location.href = result.redirect;
+                                }, 2500);
+                            } else {
+                                this.showAlert('error', result.message);
+                                if (result.errors) {
+                                    if (result.errors.fullname) this.showError('fullname', result.errors.fullname);
+                                    if (result.errors.email) this.showError('email', result.errors.email);
+                                    if (result.errors.password) this.showError('password', result.errors.password);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Registration error:', error);
+                            this.showAlert('error', 'Terjadi kesalahan koneksi. Silakan coba lagi.');
+                        } finally {
+                            this.setLoading(false);
+                        }
+                    }
+
+                    setLoading(loading) {
+                        this.submitButton.classList.toggle('loading', loading);
+                        this.submitButton.disabled = loading;
+                    }
+                }
+
+                document.addEventListener('DOMContentLoaded', () => {
+                    new RegisterForm();
                 });
-            }
-
-            setupSocialButtons() {
-                this.socialButtons.forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const provider = button.querySelector('span').textContent.trim();
-                        this.handleSocialLogin(provider, button);
-                    });
-                });
-            }
-
-            setupCareerEffects() {
-                // Add professional focus effects
-                [this.fullnameInput, this.emailInput, this.passwordInput].forEach(input => {
-                    input.addEventListener('focus', (e) => {
-                        this.triggerCareerEffect(e.target.closest('.professional-field'));
-                    });
-
-                    input.addEventListener('blur', (e) => {
-                        this.resetCareerEffect(e.target.closest('.professional-field'));
-                    });
-                });
-            }
-
-            triggerCareerEffect(field) {
-                // Add gentle breathing effect to the field
-                const fieldProfessional = field.querySelector('.field-professional');
-                fieldProfessional.style.animation = 'gentleBreath 3s ease-in-out infinite';
-            }
-
-            resetCareerEffect(field) {
-                // Remove breathing effect
-                const fieldProfessional = field.querySelector('.field-professional');
-                fieldProfessional.style.animation = '';
-            }
-
-            validateFullname() {
-                const fullname = this.fullnameInput.value.trim();
-                const nameRegex = /^[a-zA-Z\s]{3,}$/;
-
-                if (!fullname) {
-                    this.showError('fullname', 'Mohon masukkan nama lengkap');
-                    return false;
-                }
-
-                if (fullname.length < 3) {
-                    this.showError('fullname', 'Nama minimal 3 karakter');
-                    return false;
-                }
-
-                if (!nameRegex.test(fullname)) {
-                    this.showError('fullname', 'Nama hanya boleh berisi huruf dan spasi');
-                    return false;
-                }
-
-                this.clearError('fullname');
-                return true;
-            }
-
-            validateEmail() {
-                const email = this.emailInput.value.trim();
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-                if (!email) {
-                    this.showError('email', 'Mohon masukkan alamat email');
-                    return false;
-                }
-
-                if (!emailRegex.test(email)) {
-                    this.showError('email', 'Format email tidak valid');
-                    return false;
-                }
-
-                this.clearError('email');
-                return true;
-            }
-
-            validatePassword() {
-                const password = this.passwordInput.value;
-
-                if (!password) {
-                    this.showError('password', 'Mohon masukkan kata sandi');
-                    return false;
-                }
-
-                if (password.length < 6) {
-                    this.showError('password', 'Kata sandi minimal 6 karakter');
-                    return false;
-                }
-
-                this.clearError('password');
-                return true;
-            }
-
-            showError(field, message) {
-                const professionalField = document.getElementById(field).closest('.professional-field');
-                const errorElement = document.getElementById(`${field}Error`);
-
-                professionalField.classList.add('error');
-                errorElement.textContent = message;
-                errorElement.classList.add('show');
-            }
-
-            clearError(field) {
-                const professionalField = document.getElementById(field).closest('.professional-field');
-                const errorElement = document.getElementById(`${field}Error`);
-
-                professionalField.classList.remove('error');
-                errorElement.classList.remove('show');
-                setTimeout(() => {
-                    errorElement.textContent = '';
-                }, 300);
-            }
-
-            async handleSubmit(e) {
-                e.preventDefault();
-
-                const isFullnameValid = this.validateFullname();
-                const isEmailValid = this.validateEmail();
-                const isPasswordValid = this.validatePassword();
-
-                if (!isFullnameValid || !isEmailValid || !isPasswordValid) {
-                    return;
-                }
-
-                this.setLoading(true);
-
-                try {
-                    // Simulate authentication process
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-
-                    // Show success
-                    this.showCareerSuccess();
-                } catch (error) {
-                    this.showError('password', 'Login failed. Please try again.');
-                } finally {
-                    this.setLoading(false);
-                }
-            }
-
-            async handleSocialLogin(provider, button) {
-                console.log(`Connecting with ${provider}...`);
-
-                // Loading state
-                const originalHTML = button.innerHTML;
-                button.style.pointerEvents = 'none';
-                button.style.opacity = '0.7';
-
-                const loadingHTML = `
-                    <div class="social-career"></div>
-                    <div style="display: flex; gap: 4px;">
-                        <div style="width: 6px; height: 6px; background: #3d8eff; border-radius: 50%; animation: professionalGrow 1.5s ease-in-out infinite;"></div>
-                        <div style="width: 6px; height: 6px; background: #3d8eff; border-radius: 50%; animation: professionalGrow 1.5s ease-in-out infinite; animation-delay: 0.2s;"></div>
-                        <div style="width: 6px; height: 6px; background: #3d8eff; border-radius: 50%; animation: professionalGrow 1.5s ease-in-out infinite; animation-delay: 0.4s;"></div>
-                    </div>
-                    <span>Connecting...</span>
-                    <div class="social-glow"></div>
-                `;
-
-                button.innerHTML = loadingHTML;
-
-                try {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    console.log(`Redirecting to ${provider} authentication...`);
-                    // window.location.href = `/auth/${provider.toLowerCase()}`;
-                } catch (error) {
-                    console.error(`${provider} connection failed: ${error.message}`);
-                } finally {
-                    button.style.pointerEvents = 'auto';
-                    button.style.opacity = '1';
-                    button.innerHTML = originalHTML;
-                }
-            }
-
-            setLoading(loading) {
-                this.submitButton.classList.toggle('loading', loading);
-                this.submitButton.disabled = loading;
-
-                // Disable social buttons during processing
-                this.socialButtons.forEach(button => {
-                    button.style.pointerEvents = loading ? 'none' : 'auto';
-                    button.style.opacity = loading ? '0.6' : '1';
-                });
-            }
-
-            showCareerSuccess() {
-                // Hide form with transition
-                this.form.style.transform = 'scale(0.95)';
-                this.form.style.opacity = '0';
-
-                setTimeout(() => {
-                    this.form.style.display = 'none';
-                    document.querySelector('.professional-social').style.display = 'none';
-                    document.querySelector('.career-signup').style.display = 'none';
-                    document.querySelector('.career-divider').style.display = 'none';
-
-                    // Show success
-                    this.successMessage.classList.add('show');
-
-                }, 300);
-
-                // Redirect after success
-                setTimeout(() => {
-                    console.log('Welcome to JobFinder...');
-                    // window.location.href = '/dashboard';
-                }, 3000);
-            }
-        }
-
-        // Add gentle breathing animation to CSS dynamically
-        if (!document.querySelector('#career-keyframes')) {
-            const style = document.createElement('style');
-            style.id = 'career-keyframes';
-            style.textContent = `
-                @keyframes gentleBreath {
-                    0%, 100% { transform: scale(1); }
-                    50% { transform: scale(1.01); }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-
-        // Initialize the career form when DOM is loaded
-        document.addEventListener('DOMContentLoaded', () => {
-            new JobFinderLoginForm();
-        });
-    </script>
+            </script>
 </body>
 
 </html>

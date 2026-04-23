@@ -43,7 +43,7 @@ $jenis_list = $db->getAllJenis();
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <style>
-        /* ========== SAME STYLES AS BEFORE (keep all CSS) ========== */
+        /* ========== STYLES WITH HORIZONTAL SCROLL FIX ========== */
         * {
             margin: 0;
             padding: 0;
@@ -54,11 +54,15 @@ $jenis_list = $db->getAllJenis();
             font-family: 'Poppins', sans-serif;
             background: #f8fafc;
             color: #0f172a;
+            overflow-x: hidden;
+            /* Mencegah scroll horizontal pada body */
         }
 
         .app-container {
             display: flex;
             min-height: 100vh;
+            overflow-x: hidden;
+            /* Mencegah scroll horizontal pada container */
         }
 
         .sidebar {
@@ -134,6 +138,8 @@ $jenis_list = $db->getAllJenis();
             flex: 1;
             margin-left: 280px;
             min-height: 100vh;
+            overflow-x: hidden;
+            /* Mencegah scroll horizontal pada wrapper */
         }
 
         .top-navbar {
@@ -296,9 +302,41 @@ $jenis_list = $db->getAllJenis();
             padding: 0;
         }
 
+        /* ========== PERBAIKAN UTAMA: Container scroll horizontal untuk tabel ========== */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
+            /* Untuk scroll halus di iOS */
+            position: relative;
+        }
+
+        /* Styling scrollbar untuk container tabel */
+        .table-responsive::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Tabel tidak perlu overflow-x lagi, karena dibungkus container yang scroll */
         .modern-table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 900px;
+            /* Lebar minimal tabel, memicu scroll jika layar lebih kecil */
         }
 
         .modern-table thead tr {
@@ -314,6 +352,8 @@ $jenis_list = $db->getAllJenis();
             color: #64748b;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            white-space: nowrap;
+            /* Mencegah teks header turun ke bawah */
         }
 
         .modern-table td {
@@ -321,6 +361,19 @@ $jenis_list = $db->getAllJenis();
             border-bottom: 1px solid #f1f5f9;
             font-size: 0.85rem;
             vertical-align: middle;
+            white-space: nowrap;
+            /* Mencegah isi sel turun ke bawah */
+        }
+
+        /* Kolom informasi lowongan (gambar + judul) boleh lebih fleksibel */
+        .modern-table td:first-child {
+            white-space: normal;
+            min-width: 280px;
+        }
+
+        /* Kolom aksi tetap rapi */
+        .modern-table td:last-child {
+            white-space: nowrap;
         }
 
         .modern-table tbody tr:hover {
@@ -340,6 +393,7 @@ $jenis_list = $db->getAllJenis();
             object-fit: cover;
             background: #f1f5f9;
             border: 1px solid #e2e8f0;
+            flex-shrink: 0;
         }
 
         .job-image-placeholder {
@@ -352,10 +406,12 @@ $jenis_list = $db->getAllJenis();
             justify-content: center;
             color: #4f46e5;
             font-size: 1.2rem;
+            flex-shrink: 0;
         }
 
         .job-details {
             flex: 1;
+            min-width: 0;
         }
 
         .job-title {
@@ -387,6 +443,7 @@ $jenis_list = $db->getAllJenis();
         .salary-cell {
             font-weight: 600;
             color: #059669;
+            white-space: nowrap;
         }
 
         .badge {
@@ -395,6 +452,7 @@ $jenis_list = $db->getAllJenis();
             font-size: 0.7rem;
             font-weight: 600;
             display: inline-block;
+            white-space: nowrap;
         }
 
         .badge-active {
@@ -492,8 +550,17 @@ $jenis_list = $db->getAllJenis();
             z-index: 1000;
         }
 
+        /* Force close all modals on page load */
+        .modal {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+
         .modal.show {
             display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
 
         .modal-content {
@@ -502,10 +569,12 @@ $jenis_list = $db->getAllJenis();
             max-width: 900px;
             width: 90%;
             max-height: 85vh;
-            overflow-y: auto;
+            overflow-y: auto !important;
             position: relative;
             margin: auto;
             animation: modalFadeIn 0.25s ease;
+            display: flex;
+            flex-direction: column;
         }
 
         @keyframes modalFadeIn {
@@ -574,6 +643,7 @@ $jenis_list = $db->getAllJenis();
             grid-template-columns: 1fr 1fr;
             gap: 16px;
             padding: 24px;
+            flex: 1;
         }
 
         .form-group {
@@ -712,6 +782,11 @@ $jenis_list = $db->getAllJenis();
             }
         }
 
+        /* DataTables wrapper styling - harus ikut scroll container */
+        .dataTables_wrapper {
+            overflow-x: visible;
+        }
+
         .dataTables_wrapper .dataTables_length,
         .dataTables_wrapper .dataTables_filter,
         .dataTables_wrapper .dataTables_info,
@@ -768,14 +843,9 @@ $jenis_list = $db->getAllJenis();
                 grid-column: span 1;
             }
 
-            .modern-table {
-                display: block;
+            /* Di mobile, tabel tetap bisa di-scroll horizontal */
+            .table-responsive {
                 overflow-x: auto;
-                white-space: nowrap;
-            }
-
-            .job-info-cell {
-                min-width: 220px;
             }
         }
     </style>
@@ -807,79 +877,81 @@ $jenis_list = $db->getAllJenis();
                 <div class="card">
                     <div class="card-body">
                         <?php if (count($lowongan_list) > 0): ?>
-                            <table class="modern-table" id="lowonganTable">
-                                <thead>
-                                    <tr>
-                                        <th>Informasi Lowongan</th>
-                                        <th>Lokasi</th>
-                                        <th>Gaji</th>
-                                        <th>Tanggal Posting</th>
-                                        <th>Status</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($lowongan_list as $low):
-                                        $has_gambar = !empty($low['gambar']);
-                                        $gambar_url = $has_gambar ? ADMIN_IMG_URL . $low['gambar'] : '';
-                                        $gambar_path_server = '../adminpanel/src/images/jobs/' . $low['gambar'];
-                                        $gambar_exists = $has_gambar && file_exists($gambar_path_server);
-                                        ?>
+                            <!-- ========== PERBAIKAN: Bungkus tabel dengan div.table-responsive ========== -->
+                            <div class="table-responsive">
+                                <table class="modern-table" id="lowonganTable">
+                                    <thead>
                                         <tr>
-                                            <td>
-                                                <div class="job-info-cell">
-                                                    <?php if ($gambar_exists): ?>
-                                                        <img src="<?php echo $gambar_url; ?>" class="job-image"
-                                                            alt="<?php echo htmlspecialchars($low['judul_lowongan']); ?>"
-                                                            onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.job-image-placeholder').style.display='flex';">
-                                                        <div class="job-image-placeholder" style="display: none;">
-                                                            <i class="fas fa-briefcase"></i>
-                                                        </div>
-                                                    <?php else: ?>
-                                                        <div class="job-image-placeholder">
-                                                            <i class="fas fa-briefcase"></i>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <div class="job-details">
-                                                        <div class="job-title">
-                                                            <?php echo htmlspecialchars($low['judul_lowongan']); ?>
-                                                        </div>
-                                                        <div class="job-category">
-                                                            <i class="fas fa-tag"></i>
-                                                            <?php
-                                                            $kategori_nama = '';
-                                                            foreach ($kategori_list as $kat) {
-                                                                if ($kat['id_kategori'] == $low['kategori_lowongan']) {
-                                                                    $kategori_nama = $kat['nama_kategori'];
-                                                                    break;
+                                            <th>Informasi Lowongan</th>
+                                            <th>Lokasi</th>
+                                            <th>Gaji</th>
+                                            <th>Tanggal Posting</th>
+                                            <th>Status</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($lowongan_list as $low):
+                                            $has_gambar = !empty($low['gambar']);
+                                            $gambar_url = $has_gambar ? ADMIN_IMG_URL . $low['gambar'] : '';
+                                            $gambar_path_server = '../adminpanel/src/images/jobs/' . $low['gambar'];
+                                            $gambar_exists = $has_gambar && file_exists($gambar_path_server);
+                                            ?>
+                                            <tr>
+                                                <td>
+                                                    <div class="job-info-cell">
+                                                        <?php if ($gambar_exists): ?>
+                                                            <img src="<?php echo $gambar_url; ?>" class="job-image"
+                                                                alt="<?php echo htmlspecialchars($low['judul_lowongan']); ?>"
+                                                                onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.job-image-placeholder').style.display='flex';">
+                                                            <div class="job-image-placeholder" style="display: none;">
+                                                                <i class="fas fa-briefcase"></i>
+                                                            </div>
+                                                        <?php else: ?>
+                                                            <div class="job-image-placeholder">
+                                                                <i class="fas fa-briefcase"></i>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                        <div class="job-details">
+                                                            <div class="job-title">
+                                                                <?php echo htmlspecialchars($low['judul_lowongan']); ?>
+                                                            </div>
+                                                            <div class="job-category">
+                                                                <i class="fas fa-tag"></i>
+                                                                <?php
+                                                                $kategori_nama = '';
+                                                                foreach ($kategori_list as $kat) {
+                                                                    if ($kat['id_kategori'] == $low['kategori_lowongan']) {
+                                                                        $kategori_nama = $kat['nama_kategori'];
+                                                                        break;
+                                                                    }
                                                                 }
-                                                            }
-                                                            echo htmlspecialchars($kategori_nama ?: 'Tidak ada kategori');
-                                                            ?>
+                                                                echo htmlspecialchars($kategori_nama ?: 'Tidak ada kategori');
+                                                                ?>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
+                                </div>
+                                <td>
+                                    <div class="location-cell">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <?php echo htmlspecialchars($low['lokasi_lowongan'] ?? $low['nama_kota'] ?? '-'); ?>
+                                    </div>
                             </div>
                             <td>
-                                <div class="location-cell">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <?php echo htmlspecialchars($low['lokasi_lowongan'] ?? $low['nama_kota'] ?? '-'); ?>
-                                </div>
+                                <span class="salary-cell">
+                                    Rp <?php echo number_format($low['gaji_lowongan'] ?? 0, 0, ',', '.'); ?>
+                                </span>
                         </div>
                         <td>
-                            <span class="salary-cell">
-                                Rp <?php echo number_format($low['gaji_lowongan'] ?? 0, 0, ',', '.'); ?>
-                            </span>
+                            <i class="far fa-calendar-alt" style="color: #94a3b8; font-size: 0.7rem; margin-right: 6px;"></i>
+                            <?php echo date('d/m/Y', strtotime($low['tanggal_posting'])); ?>
                 </div>
                 <td>
-                    <i class="far fa-calendar-alt" style="color: #94a3b8; font-size: 0.7rem; margin-right: 6px;"></i>
-                    <?php echo date('d/m/Y', strtotime($low['tanggal_posting'])); ?>
+                    <span class="badge <?php echo $low['status'] == 'Aktif' ? 'badge-active' : 'badge-nonactive'; ?>">
+                        <?php echo $low['status']; ?>
+                    </span>
             </div>
-            <td>
-                <span class="badge <?php echo $low['status'] == 'Aktif' ? 'badge-active' : 'badge-nonactive'; ?>">
-                    <?php echo $low['status']; ?>
-                </span>
-                </div>
             <td>
                 <div class="action-buttons">
                     <button class="btn-icon btn-edit editLowongan" data-id="<?php echo $low['id_lowongan']; ?>" title="Edit">
@@ -895,6 +967,8 @@ $jenis_list = $db->getAllJenis();
             <?php endforeach; ?>
             </tbody>
             </table>
+            </div>
+            <!-- ========== END PERBAIKAN ========== -->
         <?php else: ?>
             <div class="empty-state">
                 <div class="empty-state-icon">
@@ -1110,14 +1184,13 @@ $jenis_list = $db->getAllJenis();
                 return ADMIN_IMG_URL + gambarName;
             }
 
-            // Notification function (sama seperti di lamaran)
+            // Notification function
             function showNotification(type, message, title) {
                 if ($('#alertContainer').length === 0) {
                     $('body').append('<div id="alertContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: 400px;"></div>');
                 }
 
                 var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-                var bgColor = type === 'success' ? '#dcfce7' : '#fee2e2';
                 var textColor = type === 'success' ? '#15803d' : '#dc2626';
 
                 var alertHtml = `
@@ -1265,7 +1338,6 @@ $jenis_list = $db->getAllJenis();
                 var formData = new FormData(this);
                 formData.append('action', 'save');
 
-                // Disable button
                 var submitBtn = $(this).find('button[type="submit"]');
                 var originalText = submitBtn.html();
                 submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...').prop('disabled', true);
@@ -1347,7 +1419,6 @@ $jenis_list = $db->getAllJenis();
                 $('body').css('overflow', '');
             }
 
-            // Tombol export
             $('#btnExportLowongan').click(function () {
                 openExportModal();
             });
@@ -1375,18 +1446,13 @@ $jenis_list = $db->getAllJenis();
 
             // Reset filter
             $('#btnResetFilter').click(function () {
-                // Reset semua select dan input
                 $('#exportModal select').each(function () {
                     $(this).val('');
                 });
                 $('#exportModal input[type="number"], #exportModal input[type="date"]').each(function () {
                     $(this).val('');
                 });
-
-                // Reset kota options
                 $('#filterKota').empty().append('<option value="">Semua Kota</option>');
-
-                // Trigger change untuk provinsi agar kota ter-reset
                 $('#filterProvinsi').trigger('change');
             });
 
@@ -1411,7 +1477,6 @@ $jenis_list = $db->getAllJenis();
                     format: format
                 };
 
-                // Show loading
                 var btnId = '#btnExport' + format.toUpperCase();
                 var originalText = $(btnId).html();
                 $(btnId).html('<i class="fas fa-spinner fa-spin"></i> Exporting...').prop('disabled', true);
@@ -1423,10 +1488,8 @@ $jenis_list = $db->getAllJenis();
                     dataType: 'json',
                     success: function (res) {
                         $(btnId).html(originalText).prop('disabled', false);
-
                         if (res.success) {
                             if (res.data_count > 0) {
-                                // Download file using download handler
                                 var downloadUrl = 'download.php?file=' + encodeURIComponent(res.download_url.replace('exports/', ''));
                                 window.location.href = downloadUrl;
                                 showNotification('success', `Berhasil export ${res.data_count} data lowongan`, 'Export Berhasil');
@@ -1445,21 +1508,20 @@ $jenis_list = $db->getAllJenis();
                 });
             }
 
-            // Export button handlers
-            $('#btnExportCSV').click(function () {
-                exportData('csv');
-            });
-
-            $('#btnExportXLS').click(function () {
-                exportData('xls');
-            });
-
-            $('#btnExportPDF').click(function () {
-                exportData('pdf');
-            });
+            $('#btnExportCSV').click(function () { exportData('csv'); });
+            $('#btnExportXLS').click(function () { exportData('xls'); });
+            $('#btnExportPDF').click(function () { exportData('pdf'); });
 
             // DataTable initialization
             $(document).ready(function () {
+                $('.modal').removeClass('show').hide();
+                $('body').css('overflow', '');
+
+                if (typeof (Storage) !== "undefined") {
+                    localStorage.removeItem('modalState');
+                    sessionStorage.removeItem('modalState');
+                }
+
                 if ($('#lowonganTable tbody tr').length > 0) {
                     $('#lowonganTable').DataTable({
                         language: {
@@ -1469,6 +1531,13 @@ $jenis_list = $db->getAllJenis();
                         order: [[3, 'desc']]
                     });
                 }
+            });
+
+            $(window).on('load', function () {
+                setTimeout(function () {
+                    $('.modal').removeClass('show').hide();
+                    $('body').css('overflow', '');
+                }, 100);
             });
         </script>
 </body>

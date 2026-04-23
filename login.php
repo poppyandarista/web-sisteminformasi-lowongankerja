@@ -1026,7 +1026,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 stroke-linejoin="round" />
                         </svg>
                     </div>
-                </div>>
+                </div>
             </div>
         </div>
     </div>

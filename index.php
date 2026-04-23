@@ -2,22 +2,23 @@
 session_start();
 include 'config/database.php';
 $db = new database();
+
+// Get filter parameters from URL
+$search_keyword = isset($_GET['search_keyword']) ? trim($_GET['search_keyword']) : '';
+$selected_lokasi = isset($_GET['lokasi']) ? $_GET['lokasi'] : 'all';
+$selected_perusahaan = isset($_GET['perusahaan']) ? $_GET['perusahaan'] : 'all';
+$selected_kategori = isset($_GET['filter_kategori']) ? $_GET['filter_kategori'] : 'all';
+
+// Get filter data from database
 $categories = $db->tampil_data_kategori();
-
-// Get filter categories from database
 $filter_categories = $db->tampil_kategori_filter();
+$lokasi_options = $db->get_lokasi_filter();
+$perusahaan_options = $db->get_perusahaan_filter();
 
-// Get filter parameter from URL
-$selected_kategori = $_GET['filter_kategori'] ?? 'all';
+// Get jobs based on filters
+$latest_jobs = $db->filter_lowongan($search_keyword, $selected_lokasi, $selected_kategori);
 
-// Get jobs based on filter
-if ($selected_kategori === 'all') {
-  $latest_jobs = $db->tampil_data_lowongan();
-} else {
-  $latest_jobs = $db->filter_lowongan_kategori($selected_kategori);
-}
-
-// Get companies from database
+// Get companies for slider
 $companies = $db->tampil_data_perusahaan();
 
 // Icon mapping untuk kategori
@@ -68,21 +69,28 @@ function timeAgo($date)
 // Function to format salary
 function formatSalary($salary)
 {
-  if ($salary) {
+  if ($salary && $salary > 0) {
     return "Rp" . number_format($salary, 0, ',', '.');
   }
   return "Negosiasi";
 }
 
 // Function to generate filter URL
-function generateFilterUrl($kategori_id)
-{
-  $query_params = $_GET;
-  unset($query_params['filter_kategori']);
-  if ($kategori_id !== 'all') {
-    $query_params['filter_kategori'] = $kategori_id;
-  }
-  return 'index.php' . (empty($query_params) ? '' : '?' . http_build_query($query_params));
+function generateFilterUrl($params = []) {
+    $current_params = $_GET;
+    foreach ($params as $key => $value) {
+        if ($value === 'all' || $value === '') {
+            unset($current_params[$key]);
+        } else {
+            $current_params[$key] = $value;
+        }
+    }
+    return 'index.php' . (empty($current_params) ? '' : '?' . http_build_query($current_params));
+}
+
+// Function to keep search parameters in URL
+function keepParam($paramName, $default = '') {
+    return isset($_GET[$paramName]) ? htmlspecialchars($_GET[$paramName]) : $default;
 }
 ?>
 <!DOCTYPE html>
@@ -584,6 +592,77 @@ function generateFilterUrl($kategori_id)
     .job-card {
       position: relative;
     }
+
+    /* Active Filters Styles */
+.active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+.filter-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+}
+
+.filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    background: #e7f1ff;
+    color: #0d6efd;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.filter-badge .remove-filter {
+    color: #0d6efd;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.filter-badge .remove-filter:hover {
+    color: #dc3545;
+}
+
+.clear-all-filters {
+    margin-left: auto;
+    color: #dc3545;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.clear-all-filters:hover {
+    background: #dc3545;
+    color: white;
+    text-decoration: none;
+}
+
+.job-count-info {
+    padding: 10px 0;
+    color: #eef1f3ff;
+    font-size: 14px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.job-count-info i {
+    margin-right: 5px;
+    color: #eaecefff;
+}
   </style>
 </head>
 
@@ -605,65 +684,121 @@ function generateFilterUrl($kategori_id)
               Dapatkan karir impian Anda bersama kami sekarang juga!
             </p>
             <div class="job-search-form">
-              <form>
-                <div class="row">
-                  <div class="col-lg-5 col-md-6 col-xs-12">
-                    <div class="form-group">
-                      <input class="form-control" type="text" placeholder="Posisi atau Nama Perusahaan" />
-                    </div>
-                  </div>
-                  <div class="col-lg-3 col-md-6 col-xs-12">
-                    <div class="form-group">
-                      <div class="search-category-container">
-                        <label class="styled-select">
-                          <select>
-                            <option value="none">Lokasi</option>
-                            <option value="none">Jakarta</option>
-                            <option value="none">Surabaya</option>
-                            <option value="none">Bandung</option>
-                            <option value="none">Medan</option>
-                            <option value="none">Semarang</option>
-                            <option value="none">Bali</option>
-                          </select>
-                        </label>
-                      </div>
-                      <i class="lni-map-marker"></i>
-                    </div>
-                  </div>
-                  <div class="col-lg-3 col-md-6 col-xs-12">
-                    <div class="form-group">
-                      <div class="search-category-container">
-                        <label class="styled-select">
-                          <select>
-                            <option>Semua Kategori</option>
-                            <option>Keuangan</option>
-                            <option>IT & Teknik</option>
-                            <option>Pendidikan/Pelatihan</option>
-                            <option>Seni/Desain</option>
-                            <option>Penjualan/Pemasaran</option>
-                            <option>Healthcare</option>
-                            <option>Science</option>
-                            <option>Food Services</option>
-                          </select>
-                        </label>
-                      </div>
-                      <i class="lni-layers"></i>
-                    </div>
-                  </div>
-                  <div class="col-lg-1 col-md-6 col-xs-12">
-                    <button type="submit" class="button">
-                      <i class="lni-search"></i>
-                    </button>
-                  </div>
+    <form method="GET" action="index.php">
+        <div class="row">
+            <div class="col-lg-5 col-md-6 col-xs-12">
+                <div class="form-group">
+                    <input class="form-control" type="text" 
+                           name="search_keyword" 
+                           placeholder="Posisi atau Nama Perusahaan"
+                           value="<?php echo htmlspecialchars($search_keyword); ?>" />
                 </div>
-              </form>
             </div>
+            <div class="col-lg-3 col-md-6 col-xs-12">
+                <div class="form-group">
+                    <div class="search-category-container">
+                        <label class="styled-select">
+                            <select name="lokasi">
+                                <option value="all" <?php echo $selected_lokasi == 'all' ? 'selected' : ''; ?>>Semua Lokasi</option>
+                                <?php foreach ($lokasi_options as $lokasi): ?>
+                                    <option value="<?php echo htmlspecialchars($lokasi['nama_lokasi']); ?>" 
+                                        <?php echo $selected_lokasi == $lokasi['nama_lokasi'] ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($lokasi['nama_lokasi']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    </div>
+                    <i class="lni-map-marker"></i>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 col-xs-12">
+                <div class="form-group">
+                    <div class="search-category-container">
+                        <label class="styled-select">
+                            <select name="filter_kategori">
+                                <option value="all" <?php echo $selected_kategori == 'all' ? 'selected' : ''; ?>>Semua Kategori</option>
+                                <?php foreach ($filter_categories as $kategori): ?>
+                                    <option value="<?php echo $kategori['id_kategori']; ?>"
+                                        <?php echo $selected_kategori == $kategori['id_kategori'] ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($kategori['nama_kategori']); ?>
+                                        (<?php echo $kategori['jumlah_lowongan']; ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    </div>
+                    <i class="lni-layers"></i>
+                </div>
+            </div>
+            <div class="col-lg-1 col-md-6 col-xs-12">
+                <button type="submit" class="button">
+                    <i class="lni-search"></i>
+                </button>
+            </div>
+        </div>
+        
+<!-- Setelah filter tags, tambahkan -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="job-count-info">
+            <i class="lni-briefcase"></i> 
+            Menampilkan <strong><?php echo count($latest_jobs); ?></strong> lowongan pekerjaan
+            <?php if ($search_keyword || $selected_lokasi != 'all' || $selected_kategori != 'all'): ?>
+                dari hasil pencarian
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
+        <!-- Tampilkan filter aktif -->
+        <?php if ($search_keyword || $selected_lokasi != 'all' || $selected_perusahaan != 'all' || $selected_kategori != 'all'): ?>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="active-filters">
+                    <span class="filter-label">Filter Aktif:</span>
+                    <?php if ($search_keyword): ?>
+                        <span class="filter-badge">
+                            Pencarian: <?php echo htmlspecialchars($search_keyword); ?>
+                            <a href="<?php echo generateFilterUrl(['search_keyword' => 'all']); ?>" class="remove-filter">×</a>
+                        </span>
+                    <?php endif; ?>
+                    <?php if ($selected_lokasi != 'all'): ?>
+                        <span class="filter-badge">
+                            Lokasi: <?php echo htmlspecialchars($selected_lokasi); ?>
+                            <a href="<?php echo generateFilterUrl(['lokasi' => 'all']); ?>" class="remove-filter">×</a>
+                        </span>
+                    <?php endif; ?>
+                    <?php if ($selected_kategori != 'all'): ?>
+                        <span class="filter-badge">
+                            Kategori: <?php 
+                                $kat_nama = '';
+                                foreach ($filter_categories as $kat) {
+                                    if ($kat['id_kategori'] == $selected_kategori) {
+                                        $kat_nama = $kat['nama_kategori'];
+                                        break;
+                                    }
+                                }
+                                echo htmlspecialchars($kat_nama);
+                            ?>
+                            <a href="<?php echo generateFilterUrl(['filter_kategori' => 'all']); ?>" class="remove-filter">×</a>
+                        </span>
+                    <?php endif; ?>
+                    <a href="index.php" class="clear-all-filters">Reset Semua Filter</a>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+    </form>
+</div>
           </div>
         </div>
       </div>
     </div>
   </header>
   <!-- Hero Section End -->
+
+  
 
   <!-- Category Section Start -->
   <section class="category section bg-gray">
@@ -892,23 +1027,22 @@ function generateFilterUrl($kategori_id)
             <p>Temukan pekerjaan impian Anda di sini</p>
 
             <!-- Filter Tags -->
-            <div class="filter-tags">
-              <a href="<?php echo generateFilterUrl('all'); ?>"
-                class="filter-tag <?php echo $selected_kategori === 'all' ? 'active' : ''; ?>" data-category="all">
-                <i class="lni-grid-alt"></i> Semua Pekerjaan
-              </a>
-              <?php foreach ($filter_categories as $kategori): ?>
-                <a href="<?php echo generateFilterUrl($kategori['id_kategori']); ?>"
-                  class="filter-tag <?php echo $selected_kategori == $kategori['id_kategori'] ? 'active' : ''; ?>"
-                  data-category="<?php echo strtolower(str_replace([' ', '/', '&'], '', $kategori['nama_kategori'])); ?>">
-                  <i class="<?php echo $icon_mapping[$kategori['nama_kategori']] ?? 'lni-folder'; ?>"></i>
-                  <?php echo htmlspecialchars($kategori['nama_kategori']); ?>
-                  <?php if ($kategori['jumlah_lowongan'] > 0): ?>
-                    <span class="job-count-badge">(<?php echo $kategori['jumlah_lowongan']; ?>)</span>
-                  <?php endif; ?>
-                </a>
-              <?php endforeach; ?>
-            </div>
+<div class="filter-tags">
+    <a href="<?php echo generateFilterUrl(['filter_kategori' => 'all']); ?>"
+        class="filter-tag <?php echo $selected_kategori === 'all' ? 'active' : ''; ?>">
+        <i class="lni-grid-alt"></i> Semua Pekerjaan
+    </a>
+    <?php foreach ($filter_categories as $kategori): ?>
+        <a href="<?php echo generateFilterUrl(['filter_kategori' => $kategori['id_kategori']]); ?>"
+            class="filter-tag <?php echo $selected_kategori == $kategori['id_kategori'] ? 'active' : ''; ?>">
+            <i class="<?php echo $icon_mapping[$kategori['nama_kategori']] ?? 'lni-folder'; ?>"></i>
+            <?php echo htmlspecialchars($kategori['nama_kategori']); ?>
+            <?php if ($kategori['jumlah_lowongan'] > 0): ?>
+                <span class="job-count-badge">(<?php echo $kategori['jumlah_lowongan']; ?>)</span>
+            <?php endif; ?>
+        </a>
+    <?php endforeach; ?>
+</div>
           </div>
 
           <div class="job-grid" id="jobGrid">

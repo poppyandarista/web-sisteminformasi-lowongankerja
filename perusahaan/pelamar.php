@@ -44,7 +44,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <style>
-        /* ========== SAME STYLES AS BEFORE ========== */
+        /* ========== STYLES WITH HORIZONTAL SCROLL FIX ========== */
         * {
             margin: 0;
             padding: 0;
@@ -55,11 +55,18 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             font-family: 'Poppins', sans-serif;
             background: #f8fafc;
             color: #0f172a;
+            overflow-x: hidden;
+        }
+
+        /* Class untuk menahan scroll body saat modal terbuka */
+        body.modal-open {
+            overflow: hidden !important;
         }
 
         .app-container {
             display: flex;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
         .sidebar {
@@ -135,6 +142,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             flex: 1;
             margin-left: 280px;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
         .top-navbar {
@@ -300,9 +308,37 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             padding: 0;
         }
 
+        /* ========== CONTAINER SCROLL HORIZONTAL UNTUK TABEL ========== */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+        }
+
+        .table-responsive::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
         .modern-table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 800px;
         }
 
         .modern-table thead tr {
@@ -318,6 +354,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             color: #64748b;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            white-space: nowrap;
         }
 
         .modern-table td {
@@ -325,6 +362,26 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             border-bottom: 1px solid #f1f5f9;
             font-size: 0.85rem;
             vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .modern-table td:first-child {
+            white-space: normal;
+            min-width: 250px;
+        }
+
+        .modern-table td:nth-child(2) {
+            white-space: normal;
+            min-width: 180px;
+        }
+
+        .modern-table td:nth-child(3) {
+            white-space: normal;
+            min-width: 150px;
+        }
+
+        .modern-table td:last-child {
+            white-space: nowrap;
         }
 
         .modern-table tbody tr:hover {
@@ -349,6 +406,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             font-size: 1rem;
             font-weight: 600;
             overflow: hidden;
+            flex-shrink: 0;
         }
 
         .user-avatar img {
@@ -360,6 +418,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
         .user-info {
             display: flex;
             flex-direction: column;
+            min-width: 0;
         }
 
         .user-name {
@@ -383,6 +442,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
         .contact-phone {
             font-size: 0.8rem;
             color: #1e293b;
+            white-space: nowrap;
         }
 
         .contact-phone i {
@@ -394,6 +454,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
         .contact-birth {
             font-size: 0.7rem;
             color: #64748b;
+            white-space: nowrap;
         }
 
         .contact-birth i {
@@ -411,6 +472,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             border-radius: 12px;
             font-size: 0.65rem;
             color: #475569;
+            width: fit-content;
         }
 
         .city-badge {
@@ -492,6 +554,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             margin-bottom: 20px;
         }
 
+        /* ========== MODAL STYLES DENGAN SCROLL VERTIKAL ========== */
         .modal {
             display: none;
             position: fixed;
@@ -507,6 +570,15 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
 
         .modal.show {
             display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        /* Force close all modals on page load */
+        .modal {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
         }
 
         .modal-content {
@@ -515,7 +587,9 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             max-width: 700px;
             width: 90%;
             max-height: 85vh;
-            overflow-y: auto;
+            /* PENTING: Scroll vertikal */
+            overflow-y: auto !important;
+            overflow-x: hidden;
             position: relative;
             margin: auto;
             animation: modalFadeIn 0.25s ease;
@@ -579,6 +653,9 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             gap: 12px;
             background: #fafcfc;
             border-radius: 0 0 20px 20px;
+            position: sticky;
+            bottom: 0;
+            background: white;
         }
 
         .form-two-columns {
@@ -627,6 +704,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             grid-column: span 2;
         }
 
+        /* Detail content - TIDAK ADA OVERFLOW AGAR MODAL YANG MENGATUR SCROLL */
         .detail-content {
             padding: 24px;
         }
@@ -693,6 +771,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             color: #0f172a;
             line-height: 1.5;
             font-weight: 500;
+            word-wrap: break-word;
         }
 
         .profile-header {
@@ -716,6 +795,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             font-weight: 600;
             color: white;
             overflow: hidden;
+            flex-shrink: 0;
         }
 
         .profile-avatar img {
@@ -748,6 +828,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             display: flex;
             gap: 12px;
             margin-top: 12px;
+            flex-wrap: wrap;
         }
 
         .social-link {
@@ -773,6 +854,7 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             border-radius: 12px;
             padding: 12px;
             margin-bottom: 12px;
+            word-wrap: break-word;
         }
 
         .portfolio-title {
@@ -915,14 +997,8 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                 padding: 20px;
             }
 
-            .modern-table {
-                display: block;
+            .table-responsive {
                 overflow-x: auto;
-                white-space: nowrap;
-            }
-
-            .user-cell {
-                min-width: 180px;
             }
 
             .detail-grid {
@@ -941,6 +1017,11 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
 
             .full-width {
                 grid-column: span 1;
+            }
+
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
             }
         }
     </style>
@@ -967,103 +1048,103 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                 <div class="card">
                     <div class="card-body">
                         <?php if (count($pelamar_list) > 0): ?>
-                            <table class="modern-table" id="pelamarTable">
-                                <thead>
-                                    <tr>
-                                        <th>Informasi Pelamar</th>
-                                        <th>Kontak & Info</th>
-                                        <th>Lokasi</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($pelamar_list as $pelamar):
-                                        $nama = htmlspecialchars($pelamar['nama_user'] ?? $pelamar['username_user'] ?? '-');
-                                        $initial = strtoupper(substr($nama, 0, 1));
-                                        $jk = $pelamar['jk_user'] ?? '';
-                                        $jk_text = '';
-                                        $jk_icon = '';
-                                        if ($jk == 'L') {
-                                            $jk_text = 'Laki-laki';
-                                            $jk_icon = 'fa-mars';
-                                        } elseif ($jk == 'P') {
-                                            $jk_text = 'Perempuan';
-                                            $jk_icon = 'fa-venus';
-                                        }
-
-                                        // Path foto menggunakan URL absolut
-                                        $foto_url = '';
-                                        $has_foto = !empty($pelamar['foto_user']);
-                                        if ($has_foto) {
-                                            $foto_url = $base_url . 'adminpanel/src/images/user/' . $pelamar['foto_user'];
-                                        }
-                                        ?>
+                            <div class="table-responsive">
+                                <table class="modern-table" id="pelamarTable">
+                                    <thead>
                                         <tr>
-                                            <td>
-                                                <div class="user-cell">
-                                                    <?php if ($has_foto): ?>
-                                                        <div class="user-avatar" style="background: none; padding: 0;">
-                                                            <img src="<?php echo $foto_url; ?>"
-                                                                style="width: 40px; height: 40px; object-fit: cover; border-radius: 12px;"
-                                                                onerror="this.onerror=null; this.parentElement.style.background='linear-gradient(135deg, #eef2ff, #e0e7ff)'; this.parentElement.innerHTML='<?php echo $initial; ?>'; this.style.display='none';">
-                                                        </div>
-                                                    <?php else: ?>
-                                                        <div class="user-avatar"><?php echo $initial; ?></div>
-                                                    <?php endif; ?>
-                                                    <div class="user-info">
-                                                        <div class="user-name"><?php echo $nama; ?></div>
-                                                        <div class="user-email">
-                                                            <?php echo htmlspecialchars($pelamar['email_user'] ?? '-'); ?>
+                                            <th>Informasi Pelamar</th>
+                                            <th>Kontak & Info</th>
+                                            <th>Lokasi</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($pelamar_list as $pelamar):
+                                            $nama = htmlspecialchars($pelamar['nama_user'] ?? $pelamar['username_user'] ?? '-');
+                                            $initial = strtoupper(substr($nama, 0, 1));
+                                            $jk = $pelamar['jk_user'] ?? '';
+                                            $jk_text = '';
+                                            $jk_icon = '';
+                                            if ($jk == 'L') {
+                                                $jk_text = 'Laki-laki';
+                                                $jk_icon = 'fa-mars';
+                                            } elseif ($jk == 'P') {
+                                                $jk_text = 'Perempuan';
+                                                $jk_icon = 'fa-venus';
+                                            }
+
+                                            $foto_url = '';
+                                            $has_foto = !empty($pelamar['foto_user']);
+                                            if ($has_foto) {
+                                                $foto_url = $base_url . 'adminpanel/src/images/user/' . $pelamar['foto_user'];
+                                            }
+                                            ?>
+                                            <tr>
+                                                <td>
+                                                    <div class="user-cell">
+                                                        <?php if ($has_foto): ?>
+                                                            <div class="user-avatar" style="background: none; padding: 0;">
+                                                                <img src="<?php echo $foto_url; ?>"
+                                                                    style="width: 40px; height: 40px; object-fit: cover; border-radius: 12px;"
+                                                                    onerror="this.onerror=null; this.parentElement.style.background='linear-gradient(135deg, #eef2ff, #e0e7ff)'; this.parentElement.innerHTML='<?php echo $initial; ?>'; this.style.display='none';">
+                                                            </div>
+                                                        <?php else: ?>
+                                                            <div class="user-avatar"><?php echo $initial; ?></div>
+                                                        <?php endif; ?>
+                                                        <div class="user-info">
+                                                            <div class="user-name"><?php echo $nama; ?></div>
+                                                            <div class="user-email">
+                                                                <?php echo htmlspecialchars($pelamar['email_user'] ?? '-'); ?>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
+                                </div>
+                                <td>
+                                    <div class="contact-cell">
+                                        <div class="contact-phone">
+                                            <i class="fas fa-phone-alt"></i>
+                                            <?php echo htmlspecialchars($pelamar['nohp_user'] ?? '-'); ?>
+                                        </div>
+                                        <?php if ($pelamar['tanggallahir_user']): ?>
+                                            <div class="contact-birth">
+                                                <i class="fas fa-calendar-alt"></i>
+                                                <?php echo date('d/m/Y', strtotime($pelamar['tanggallahir_user'])); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if ($jk_text): ?>
+                                            <div class="gender-badge">
+                                                <i class="fas <?php echo $jk_icon; ?>"></i>
+                                                <?php echo $jk_text; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                             </div>
                             <td>
-                                <div class="contact-cell">
-                                    <div class="contact-phone">
-                                        <i class="fas fa-phone-alt"></i>
-                                        <?php echo htmlspecialchars($pelamar['nohp_user'] ?? '-'); ?>
-                                    </div>
-                                    <?php if ($pelamar['tanggallahir_user']): ?>
-                                        <div class="contact-birth">
-                                            <i class="fas fa-calendar-alt"></i>
-                                            <?php echo date('d/m/Y', strtotime($pelamar['tanggallahir_user'])); ?>
-                                        </div>
-                                    <?php endif; ?>
-                                    <?php if ($jk_text): ?>
-                                        <div class="gender-badge">
-                                            <i class="fas <?php echo $jk_icon; ?>"></i>
-                                            <?php echo $jk_text; ?>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
+                                <span class="city-badge">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <?php
+                                    $lokasi = [];
+                                    if (!empty($pelamar['nama_kota']))
+                                        $lokasi[] = $pelamar['nama_kota'];
+                                    if (!empty($pelamar['nama_provinsi']))
+                                        $lokasi[] = $pelamar['nama_provinsi'];
+                                    echo htmlspecialchars(implode(', ', $lokasi) ?: '-');
+                                    ?>
+                                </span>
                         </div>
                         <td>
-                            <span class="city-badge">
-                                <i class="fas fa-map-marker-alt"></i>
-                                <?php
-                                $lokasi = [];
-                                if (!empty($pelamar['nama_kota']))
-                                    $lokasi[] = $pelamar['nama_kota'];
-                                if (!empty($pelamar['nama_provinsi']))
-                                    $lokasi[] = $pelamar['nama_provinsi'];
-                                echo htmlspecialchars(implode(', ', $lokasi) ?: '-');
-                                ?>
-                            </span>
+                            <div class="action-buttons">
+                                <button class="btn-icon btn-view detailPelamar" data-id="<?php echo $pelamar['id_user']; ?>"
+                                    data-foto="<?php echo $foto_url; ?>" data-initial="<?php echo $initial; ?>"
+                                    title="Lihat Detail Lengkap">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
                 </div>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn-icon btn-view detailPelamar" data-id="<?php echo $pelamar['id_user']; ?>"
-                            data-foto="<?php echo $foto_url; ?>" data-initial="<?php echo $initial; ?>"
-                            title="Lihat Detail Lengkap">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-            </div>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-        </table>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </div>
     <?php else: ?>
         <div class="empty-state">
             <div class="empty-state-icon">
@@ -1132,7 +1213,6 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                     <select id="filterLowongan" name="filterLowongan">
                         <option value="">Semua Lowongan</option>
                         <?php
-                        // Ambil daftar lowongan perusahaan untuk filter
                         $lowongan_list = $db->getLowonganByPerusahaan($company_id);
                         foreach ($lowongan_list as $low): ?>
                             <option value="<?php echo $low['id_lowongan']; ?>">
@@ -1212,26 +1292,41 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
 
         // DataTable initialization
         $(document).ready(function () {
+            $('.modal').removeClass('show').hide();
+            $('body').css('overflow', '');
+
+            if (typeof (Storage) !== "undefined") {
+                localStorage.removeItem('modalState');
+                sessionStorage.removeItem('modalState');
+            }
+
             if ($('#pelamarTable tbody tr').length > 0) {
                 $('#pelamarTable').DataTable({
                     language: {
                         url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json'
                     },
                     pageLength: 10,
-                    order: [[0, 'asc']]
+                    order: [[0, 'desc']]
                 });
             }
         });
 
-        // Modal functions
+        $(window).on('load', function () {
+            setTimeout(function () {
+                $('.modal').removeClass('show').hide();
+                $('body').css('overflow', '');
+            }, 100);
+        });
+
+        // Modal functions dengan class modal-open pada body
         function openModal() {
             $('#detailModal').addClass('show');
-            $('body').css('overflow', 'hidden');
+            $('body').addClass('modal-open');
         }
 
         function closeModal() {
             $('#detailModal').removeClass('show');
-            $('body').css('overflow', '');
+            $('body').removeClass('modal-open');
             $('#detailContent').html('<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Memuat data...</div>');
         }
 
@@ -1274,7 +1369,6 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                             jk_icon = 'fa-venus';
                         }
 
-                        // Gunakan foto dari data atau dari atribut button
                         var fotoImg = '';
                         if (data.foto_user) {
                             var fotoPath = BASE_URL + 'adminpanel/src/images/user/' + data.foto_user;
@@ -1303,7 +1397,6 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                         </div>
                     `;
 
-                        // Informasi Pribadi
                         html += `
                         <div class="detail-section">
                             <div class="section-title">
@@ -1330,7 +1423,6 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                         </div>
                     `;
 
-                        // Tentang Diri
                         if (data.deskripsi_user) {
                             html += `
                             <div class="detail-section">
@@ -1342,7 +1434,6 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                         `;
                         }
 
-                        // Kelebihan
                         if (data.kelebihan_user) {
                             html += `
                             <div class="detail-section">
@@ -1354,7 +1445,6 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                         `;
                         }
 
-                        // Riwayat Pekerjaan
                         if (data.riwayatpekerjaan_user) {
                             html += `
                             <div class="detail-section">
@@ -1366,7 +1456,6 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                         `;
                         }
 
-                        // Prestasi
                         if (data.prestasi_user) {
                             html += `
                             <div class="detail-section">
@@ -1378,7 +1467,6 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                         `;
                         }
 
-                        // Portfolio
                         if (data.judul_porto || data.link_porto || data.gambar_porto) {
                             var gambarPortoHtml = '';
                             if (data.gambar_porto) {
@@ -1421,7 +1509,6 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             });
         });
 
-        // Escape HTML
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/[&<>]/g, function (m) {
@@ -1432,7 +1519,6 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             });
         }
 
-        // Close modal
         $('.modal-close').click(closeModal);
         $(window).click(function (e) {
             if ($(e.target).hasClass('modal')) {
@@ -1441,24 +1527,20 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
         });
 
         // ========== EXPORT PELAMAR FUNCTIONS ==========
-
-        // Export Modal Functions
         function openExportModal() {
             $('#exportModalPelamar').addClass('show');
-            $('body').css('overflow', 'hidden');
+            $('body').addClass('modal-open');
         }
 
         function closeExportModal() {
             $('#exportModalPelamar').removeClass('show');
-            $('body').css('overflow', '');
+            $('body').removeClass('modal-open');
         }
 
-        // Tombol export
         $('#btnExportPelamar').click(function () {
             openExportModal();
         });
 
-        // Load kota untuk filter provinsi
         $('#filterProvinsi').on('change', function () {
             var provinsiId = $(this).val();
             if (provinsiId) {
@@ -1479,31 +1561,23 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
             }
         });
 
-        // Reset filter
         $('#btnResetFilterPelamar').click(function () {
-            // Reset semua select dan input
             $('#exportModalPelamar select').each(function () {
                 $(this).val('');
             });
             $('#exportModalPelamar input[type="date"]').each(function () {
                 $(this).val('');
             });
-
-            // Reset kota options
             $('#filterKota').empty().append('<option value="">Semua Kota</option>');
-
-            // Trigger change untuk provinsi agar kota ter-reset
             $('#filterProvinsi').trigger('change');
         });
 
-        // Close export modal
         $('.modal-cancel').click(function () {
             if ($(this).closest('#exportModalPelamar').length) {
                 closeExportModal();
             }
         });
 
-        // Export functions - PERBAIKAN TOTAL
         function exportPelamarData(format) {
             var filters = {
                 provinsi: $('#filterProvinsi').val(),
@@ -1516,7 +1590,6 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                 format: format
             };
 
-            // Show loading
             var btnId = '#btnExport' + format.toUpperCase();
             var originalText = $(btnId).html();
             $(btnId).html('<i class="fas fa-spinner fa-spin"></i> Exporting...').prop('disabled', true);
@@ -1528,10 +1601,8 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                 dataType: 'json',
                 success: function (res) {
                     $(btnId).html(originalText).prop('disabled', false);
-
                     if (res.success) {
                         if (res.data_count > 0) {
-                            // Gunakan download handler seperti di lowongan.php
                             var downloadUrl = 'download.php?file=' + encodeURIComponent(res.download_url.replace('exports/', ''));
                             window.location.href = downloadUrl;
                             showNotification('success', `Berhasil export ${res.data_count} data pelamar`, 'Export Berhasil');
@@ -1545,25 +1616,14 @@ $jenis_list = $db->getAllJenis(); // Untuk filter lowongan
                 },
                 error: function (xhr, status, error) {
                     $(btnId).html(originalText).prop('disabled', false);
-                    console.log('Error:', error);
-                    console.log('Response:', xhr.responseText);
                     showNotification('error', 'Terjadi kesalahan saat export data', 'Error');
                 }
             });
         }
 
-        // Export button handlers
-        $('#btnExportCSV').click(function () {
-            exportPelamarData('csv');
-        });
-
-        $('#btnExportXLS').click(function () {
-            exportPelamarData('xls');
-        });
-
-        $('#btnExportPDF').click(function () {
-            exportPelamarData('pdf');
-        });
+        $('#btnExportCSV').click(function () { exportPelamarData('csv'); });
+        $('#btnExportXLS').click(function () { exportPelamarData('xls'); });
+        $('#btnExportPDF').click(function () { exportPelamarData('pdf'); });
     </script>
 
 </body>

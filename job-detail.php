@@ -29,6 +29,19 @@ $stmt->execute();
 $result = $stmt->get_result();
 $job = $result->fetch_assoc();
 
+// Cek apakah user sudah pernah melamar lowongan ini
+$has_applied = false;
+if (isset($_SESSION['user_id'])) {
+    $user_id = $_SESSION['user_id'];
+    $check_applied_query = "SELECT id_lamaran FROM lamaran WHERE id_lowongan = ? AND id_user = ?";
+    $check_applied_stmt = $db->koneksi->prepare($check_applied_query);
+    $check_applied_stmt->bind_param("ii", $job_id, $user_id);
+    $check_applied_stmt->execute();
+    $check_applied_result = $check_applied_stmt->get_result();
+    $has_applied = $check_applied_result->num_rows > 0;
+    $check_applied_stmt->close();
+}
+
 if (!$job) {
     header("Location: index.php");
     exit;
@@ -646,8 +659,15 @@ $stmt->close();
                         </a>
 
                         <div class="job-actions">
-                            <button class="btn-apply" onclick="applyJob(<?php echo $job['id_lowongan']; ?>)">Lamar
-                                Sekarang</button>
+                            <?php if ($has_applied): ?>
+                                <button class="btn-apply" disabled
+                                    style="background: #9ca3af; cursor: not-allowed; opacity: 0.7;">
+                                    <i class="lni-check-mark-circle"></i> Sudah Dilamar
+                                </button>
+                            <?php else: ?>
+                                <button class="btn-apply" onclick="applyJob(<?php echo $job['id_lowongan']; ?>)">Lamar
+                                    Sekarang</button>
+                            <?php endif; ?>
                             <button class="btn-save" id="saveJobBtn" data-job-id="<?php echo $job['id_lowongan']; ?>">
                                 <i class="lni-heart"></i> Simpan Lowongan
                             </button>
@@ -864,18 +884,204 @@ $stmt->close();
 
         // Apply button functionality
         function applyJob(jobId) {
-            // Check if user is logged in
-            <?php if (isset($_SESSION['user_id'])): ?>
-                // User is logged in, redirect to application page
-                window.location.href = 'lamar-pekerjaan.php?id=' + jobId;
-            <?php else: ?>
-                // User is not logged in, show notification and redirect to login
-                showNotification('Silakan login terlebih dahulu untuk melamar', 'info');
-                setTimeout(function () {
-                    window.location.href = 'login.php?redirect=job-detail.php?id=' + jobId;
-                }, 2000);
-            <?php endif; ?>
+            // Tampilkan loading
+            const applyBtn = document.querySelector('.btn-apply');
+            const originalText = applyBtn.innerHTML;
+            applyBtn.innerHTML = '<span class="spinner"></span> Memproses...';
+            applyBtn.disabled = true;
+
+            // Fetch ke proses_lamar.php
+            fetch('proses_lamar.php?id=' + jobId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Tampilkan notifikasi sukses seperti di login
+                        showAlert('success', data.message);
+                        // Ubah tombol menjadi "Sudah Dilamar"
+                        applyBtn.innerHTML = '<i class="lni-check-mark-circle"></i> Sudah Dilamar';
+                        applyBtn.style.background = '#9ca3af';
+                        applyBtn.style.cursor = 'not-allowed';
+                        applyBtn.disabled = true;
+                        // Hapus onclick
+                        applyBtn.removeAttribute('onclick');
+                    } else {
+                        // Tampilkan notifikasi error
+                        showAlert('error', data.message);
+                        applyBtn.innerHTML = originalText;
+                        applyBtn.disabled = false;
+
+                        // Jika perlu redirect ke login
+                        if (data.redirect) {
+                            setTimeout(function () {
+                                window.location.href = data.redirect;
+                            }, 2000);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('error', 'Terjadi kesalahan. Silakan coba lagi.');
+                    applyBtn.innerHTML = originalText;
+                    applyBtn.disabled = false;
+                });
         }
+
+        // Fungsi showAlert seperti di halaman login
+        function showAlert(type, message) {
+            // Remove existing alerts
+            const existingAlert = document.querySelector('.custom-alert');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+
+            // Create alert element
+            const alert = document.createElement('div');
+            alert.className = `custom-alert alert-${type}`;
+            alert.innerHTML = `
+        <div class="alert-content">
+            <div class="alert-icon">
+                ${type === 'success' ?
+                    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM16.2803 9.21967C16.5732 8.92678 16.5732 8.4519 16.2803 8.15899C15.9874 7.86609 15.5126 7.86609 15.2197 8.15899L10.5 12.8787L8.78033 11.159C8.48744 10.8661 8.01256 10.8661 7.71967 11.159C7.42678 11.4519 7.42678 11.9268 7.71967 12.2197L9.96967 14.4697C10.2626 14.7626 10.7374 14.7626 11.0303 14.4697L16.2803 9.21967Z" fill="#10b981"/></svg>' :
+                    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM11.25 7.5C11.25 6.94772 11.6977 6.5 12.25 6.5H12.75C13.3023 6.5 13.75 6.94772 13.75 7.5C13.75 8.05228 13.3023 8.5 12.75 8.5H12.25C11.6977 8.5 11.25 8.05228 11.25 7.5ZM12 10.25C12.4142 10.25 12.75 10.5858 12.75 11V16C12.75 16.4142 12.4142 16.75 12 16.75C11.5858 16.75 11.25 16.4142 11.25 16V11C11.25 10.5858 11.5858 10.25 12 10.25Z" fill="#ef4444"/></svg>'
+                }
+            </div>
+            <div class="alert-text">
+                <div class="alert-title">${type === 'success' ? 'Berhasil!' : 'Gagal'}</div>
+                <div class="alert-message">${message}</div>
+            </div>
+            <button class="alert-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+
+            // Add styles
+            alert.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        min-width: 350px;
+        max-width: 450px;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
+
+            const alertContent = alert.querySelector('.alert-content');
+            alertContent.style.cssText = `
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    `;
+
+            const alertIcon = alert.querySelector('.alert-icon');
+            alertIcon.style.cssText = `
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        margin-top: 2px;
+    `;
+
+            const alertText = alert.querySelector('.alert-text');
+            alertText.style.cssText = `
+        flex: 1;
+    `;
+
+            const alertTitle = alert.querySelector('.alert-title');
+            alertTitle.style.cssText = `
+        font-size: 14px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 4px;
+        line-height: 1.4;
+    `;
+
+            const alertMessage = alert.querySelector('.alert-message');
+            alertMessage.style.cssText = `
+        font-size: 13px;
+        font-weight: 400;
+        color: #6b7280;
+        line-height: 1.4;
+    `;
+
+            const alertClose = alert.querySelector('.alert-close');
+            alertClose.style.cssText = `
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #9ca3af;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    `;
+
+            // Set colors based on type
+            if (type === 'success') {
+                alert.style.background = '#ecfdf3';
+                alert.style.border = '1px solid #10b981';
+                alertTitle.style.color = '#065f46';
+                alertMessage.style.color = '#047857';
+                alertClose.style.color = '#10b981';
+            } else {
+                alert.style.background = '#fef3f2';
+                alert.style.border = '1px solid #ef4444';
+                alertTitle.style.color = '#991b1b';
+                alertMessage.style.color = '#b91c1c';
+                alertClose.style.color = '#ef4444';
+            }
+
+            // Add hover effects
+            alertClose.addEventListener('mouseenter', () => {
+                alertClose.style.background = 'rgba(0, 0, 0, 0.05)';
+            });
+            alertClose.addEventListener('mouseleave', () => {
+                alertClose.style.background = 'none';
+            });
+
+            // Append to body
+            document.body.appendChild(alert);
+
+            // Animate in
+            setTimeout(() => {
+                alert.style.transform = 'translateX(0)';
+            }, 100);
+
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                if (alert.parentElement) {
+                    alert.style.transform = 'translateX(100%)';
+                    setTimeout(() => alert.remove(), 300);
+                }
+            }, 3000);
+        }
+
+        // Tambahkan CSS spinner
+        const styleSpinner = document.createElement('style');
+        styleSpinner.textContent = `
+    .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.6s linear infinite;
+        margin-right: 8px;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+`;
+        document.head.appendChild(styleSpinner);
 
         // Notification function
         function showNotification(message, type = 'info') {

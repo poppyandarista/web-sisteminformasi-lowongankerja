@@ -356,32 +356,66 @@ if (isset($_GET['action']) && $_GET['action'] == 'update_status' && isset($_GET[
             color: #60a5fa;
         }
 
-        /* Avatar kecil */
+        /* Avatar kecil - diperbaiki */
         .avatar-small {
-            width: 32px;
-            height: 32px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             object-fit: cover;
+            border: 2px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .avatar-small:hover {
+            transform: scale(1.05);
         }
 
         .avatar-placeholder-small {
-            width: 32px;
-            height: 32px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
-            background-color: #4f46e5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 12px;
+            font-weight: 600;
+            font-size: 18px;
+            border: 2px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
         }
 
-        /* Tombol aksi */
-        .action-btn {
-            padding: 0.35rem 0.75rem;
-            font-size: 0.75rem;
-            border-radius: 5px;
+        .avatar-placeholder-small:hover {
+            transform: scale(1.05);
+        }
+
+        /* Responsive avatar */
+        @media (max-width: 768px) {
+
+            .avatar-small,
+            .avatar-placeholder-small {
+                width: 40px;
+                height: 40px;
+            }
+
+            .avatar-placeholder-small {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 640px) {
+
+            .avatar-small,
+            .avatar-placeholder-small {
+                width: 36px;
+                height: 36px;
+            }
+
+            .avatar-placeholder-small {
+                font-size: 12px;
+            }
         }
 
         /* Logo perusahaan di tabel - KOTAK */
@@ -592,6 +626,35 @@ if (isset($_GET['action']) && $_GET['action'] == 'update_status' && isset($_GET[
             height: 1rem !important;
         }
 
+        /* ========== PERBAIKAN TOMBOL EDIT LAMARAN ========== */
+        .btn-edit-lamaran {
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.75rem !important;
+            background-color: #3b82f6 !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 0.5rem !important;
+            font-weight: 500 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0.5rem !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+            white-space: nowrap !important;
+        }
+
+        .btn-edit-lamaran:hover {
+            background-color: #2563eb !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+            transform: translateY(-1px) !important;
+        }
+
+        .btn-edit-lamaran svg {
+            width: 0.875rem !important;
+            height: 0.875rem !important;
+        }
+
         /* ========== PERBAIKAN TOMBOL HAPUS LAMARAN ========== */
         button[onclick*="showDeleteConfirmation"] {
             background-color: #dc2626 !important;
@@ -657,11 +720,15 @@ if (isset($_GET['action']) && $_GET['action'] == 'update_status' && isset($_GET[
                 font-size: 0.7rem !important;
             }
 
-            /* Adjust avatar and logo sizes */
+            /* Adjust avatar and logo sizes - diperbaiki */
             .avatar-small,
             .avatar-placeholder-small {
-                width: 32px !important;
-                height: 32px !important;
+                width: 40px !important;
+                height: 40px !important;
+            }
+
+            .avatar-placeholder-small {
+                font-size: 14px !important;
             }
 
             .perusahaan-logo-container {
@@ -683,8 +750,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'update_status' && isset($_GET[
 
             .avatar-small,
             .avatar-placeholder-small {
-                width: 28px !important;
-                height: 28px !important;
+                width: 36px !important;
+                height: 36px !important;
+            }
+
+            .avatar-placeholder-small {
+                font-size: 12px !important;
             }
 
             .perusahaan-logo-container {
@@ -889,24 +960,22 @@ if (isset($_GET['action']) && $_GET['action'] == 'update_status' && isset($_GET[
                                                                 '<?php echo addslashes($row['status_lamaran']); ?>',
                                                                 '<?php echo addslashes($row['catatan_hrd'] ?? ''); ?>'
                                                             )"
-                                                                class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-white transition rounded bg-brand-500 hover:bg-brand-600 action-btn">
-                                                                <svg class="fill-current h-3 w-3" width="20" height="20"
-                                                                    viewBox="0 0 20 20" fill="none"
+                                                                class="btn-edit-lamaran inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-white transition rounded-lg">
+                                                                <svg width="14" height="14" viewBox="0 0 20 20" fill="none"
                                                                     xmlns="http://www.w3.org/2000/svg">
                                                                     <path
                                                                         d="M13.5858 3.58579C14.3668 2.80474 15.6332 2.80474 16.4142 3.58579C17.1953 4.36683 17.1953 5.63316 16.4142 6.41421L15.6213 7.20711L12.7929 4.37868L13.5858 3.58579Z"
                                                                         fill="white" />
-                                                                    <path
-                                                                        d="M11.3787 5.79289L3 14.1716V17H5.82842L14.2071 8.62132L11.3787 5.79289Z"
+                                                                    <path d="M11.3787 5.79289L3 14.1716V17H5.82842L14.2071 8.62132L11.3787 5.79289Z"
                                                                         fill="white" />
                                                                 </svg>
-                                                                Edit
+                                                                <span>Edit</span>
                                                             </button>
 
                                                             <button
                                                                 onclick="showDeleteConfirmation(<?php echo $row['id_lamaran']; ?>, '<?php echo addslashes($row['nama_user'] ?? $row['email_user']); ?>')"
                                                                 style="background-color: #dc2626;"
-                                                                class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white transition rounded-lg hover:opacity-80">
+                                                                class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white transition rounded-lg hover:bg-red-700 shadow-theme-xs">
                                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
                                                                     viewBox="0 0 20 20" fill="currentColor">
                                                                     <path fill-rule="evenodd"
@@ -1004,9 +1073,22 @@ if (isset($_GET['action']) && $_GET['action'] == 'update_status' && isset($_GET[
 
                     <div class="flex justify-end gap-2 pt-3">
                         <button type="button" onclick="hideAllModals()"
-                            class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 dark:bg-meta-4 dark:text-gray-300">Batal</button>
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all duration-200 border border-gray-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Batal
+                        </button>
                         <button type="button" onclick="updateStatusLamaran()"
-                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white transition rounded bg-brand-500 hover:bg-brand-600">
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                            style="background-color: #2563eb; border: none;"
+                            onmouseover="this.style.backgroundColor='#1d4ed8'"
+                            onmouseout="this.style.backgroundColor='#2563eb'">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <path d="M5 13l4 4L19 7" />
+                            </svg>
                             Update Status
                         </button>
                     </div>
@@ -1495,39 +1577,39 @@ if (isset($_GET['action']) && $_GET['action'] == 'update_status' && isset($_GET[
 
             const updateBtn = document.querySelector('#modalUpdateStatus button[onclick]');
             const originalText = updateBtn.innerHTML;
-            
+
             // Tampilkan loading
             updateBtn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Memperbarui...';
             updateBtn.disabled = true;
-            
+
             // Encode catatan untuk URL
             const catatanEncoded = encodeURIComponent(catatan);
-            
+
             // AJAX request untuk update
             fetch(`datalamaran.php?action=update_status&id=${id}&status=${status}&catatan=${catatanEncoded}`, {
                 method: 'GET'
             })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    showNotification('success', 'Status lamaran berhasil diperbarui!', 'Update Berhasil');
-                    toggleModal('modalUpdateStatus', false);
-                    // Auto refresh setelah 2 detik
-                    setTimeout(() => {
-                        location.reload();
-                    }, 2000);
-                } else {
-                    showNotification('error', result.message || 'Gagal memperbarui status lamaran', 'Update Gagal');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('error', 'Terjadi kesalahan saat memperbarui data', 'Error Server');
-            })
-            .finally(() => {
-                updateBtn.innerHTML = originalText;
-                updateBtn.disabled = false;
-            });
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        showNotification('success', 'Status lamaran berhasil diperbarui!', 'Update Berhasil');
+                        toggleModal('modalUpdateStatus', false);
+                        // Auto refresh setelah 2 detik
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        showNotification('error', result.message || 'Gagal memperbarui status lamaran', 'Update Gagal');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('error', 'Terjadi kesalahan saat memperbarui data', 'Error Server');
+                })
+                .finally(() => {
+                    updateBtn.innerHTML = originalText;
+                    updateBtn.disabled = false;
+                });
         }
 
         function showDeleteConfirmation(id, judul) {
@@ -1539,14 +1621,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'update_status' && isset($_GET[
                 const originalText = deleteLink.innerHTML;
                 deleteLink.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Menghapus...';
                 deleteLink.disabled = true;
-                
+
                 try {
                     const response = await fetch(`datalamaran.php?action=hapus&id=${id}`, {
                         method: 'GET'
                     });
-                    
+
                     const result = await response.json();
-                    
+
                     if (result.success) {
                         showNotification('success', 'Data lamaran berhasil dihapus!', 'Hapus Berhasil');
                         toggleModal('modalHapusLamaran', false);

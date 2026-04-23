@@ -50,11 +50,15 @@ $base_url = 'http://localhost/web-linkup-loker/';
             font-family: 'Poppins', sans-serif;
             background: #f8fafc;
             color: #0f172a;
+            overflow-x: hidden;
+            /* Mencegah scroll horizontal pada body */
         }
 
         .app-container {
             display: flex;
             min-height: 100vh;
+            overflow-x: hidden;
+            /* Mencegah scroll horizontal pada container */
         }
 
         .sidebar {
@@ -130,6 +134,8 @@ $base_url = 'http://localhost/web-linkup-loker/';
             flex: 1;
             margin-left: 280px;
             min-height: 100vh;
+            overflow-x: hidden;
+            /* Mencegah scroll horizontal pada wrapper */
         }
 
         .top-navbar {
@@ -311,9 +317,41 @@ $base_url = 'http://localhost/web-linkup-loker/';
             padding: 0;
         }
 
+        /* ========== PERBAIKAN UTAMA: Container scroll horizontal untuk tabel ========== */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
+            /* Untuk scroll halus di iOS */
+            position: relative;
+        }
+
+        /* Styling scrollbar untuk container tabel (opsional, biar lebih aesthetic) */
+        .table-responsive::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Tabel tidak perlu overflow-x lagi, karena dibungkus container yang scroll */
         .modern-table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 900px;
+            /* Lebar minimal tabel, memicu scroll jika layar lebih kecil */
         }
 
         .modern-table thead tr {
@@ -329,6 +367,8 @@ $base_url = 'http://localhost/web-linkup-loker/';
             color: #64748b;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            white-space: nowrap;
+            /* Mencegah teks header turun ke bawah */
         }
 
         .modern-table td {
@@ -336,6 +376,20 @@ $base_url = 'http://localhost/web-linkup-loker/';
             border-bottom: 1px solid #f1f5f9;
             font-size: 0.85rem;
             vertical-align: middle;
+            white-space: nowrap;
+            /* Mencegah isi sel turun ke bawah, membuat scroll horizontal lebih natural */
+        }
+
+        /* Kolom catatan boleh lebih fleksibel */
+        .modern-table td:nth-child(5) {
+            white-space: normal;
+            min-width: 180px;
+            max-width: 250px;
+        }
+
+        /* Kolom aksi tetap rapi */
+        .modern-table td:last-child {
+            white-space: nowrap;
         }
 
         .modern-table tbody tr:hover {
@@ -346,6 +400,7 @@ $base_url = 'http://localhost/web-linkup-loker/';
             display: flex;
             align-items: center;
             gap: 12px;
+            white-space: nowrap;
         }
 
         .user-avatar {
@@ -360,6 +415,7 @@ $base_url = 'http://localhost/web-linkup-loker/';
             font-size: 1rem;
             font-weight: 600;
             overflow: hidden;
+            flex-shrink: 0;
         }
 
         .user-avatar img {
@@ -371,6 +427,7 @@ $base_url = 'http://localhost/web-linkup-loker/';
         .user-info {
             display: flex;
             flex-direction: column;
+            min-width: 0;
         }
 
         .user-name {
@@ -389,6 +446,7 @@ $base_url = 'http://localhost/web-linkup-loker/';
             font-weight: 600;
             color: #0f172a;
             font-size: 0.85rem;
+            white-space: nowrap;
         }
 
         .job-title i {
@@ -400,6 +458,7 @@ $base_url = 'http://localhost/web-linkup-loker/';
         .date-cell {
             font-size: 0.8rem;
             color: #475569;
+            white-space: nowrap;
         }
 
         .date-cell i {
@@ -414,6 +473,7 @@ $base_url = 'http://localhost/web-linkup-loker/';
             font-size: 0.7rem;
             font-weight: 600;
             display: inline-block;
+            white-space: nowrap;
         }
 
         .badge-diproses {
@@ -432,12 +492,11 @@ $base_url = 'http://localhost/web-linkup-loker/';
         }
 
         .catatan-cell {
-            max-width: 200px;
             font-size: 0.75rem;
             color: #64748b;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            word-break: break-word;
+            white-space: normal !important;
+            line-height: 1.4;
         }
 
         .catatan-cell i {
@@ -468,6 +527,7 @@ $base_url = 'http://localhost/web-linkup-loker/';
             font-size: 0.75rem;
             font-weight: 500;
             cursor: pointer;
+            white-space: nowrap;
         }
 
         .btn-update:hover {
@@ -496,6 +556,7 @@ $base_url = 'http://localhost/web-linkup-loker/';
             color: #94a3b8;
         }
 
+        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -592,7 +653,6 @@ $base_url = 'http://localhost/web-linkup-loker/';
             flex-wrap: wrap;
         }
 
-        /* Form Styles */
         .form-two-columns {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -681,7 +741,6 @@ $base_url = 'http://localhost/web-linkup-loker/';
             color: #0f172a;
         }
 
-        /* Alert Container */
         .alert-container {
             position: fixed;
             top: 20px;
@@ -762,6 +821,11 @@ $base_url = 'http://localhost/web-linkup-loker/';
             }
         }
 
+        /* DataTables wrapper styling - harus ikut scroll container */
+        .dataTables_wrapper {
+            overflow-x: visible;
+        }
+
         .dataTables_wrapper .dataTables_length,
         .dataTables_wrapper .dataTables_filter,
         .dataTables_wrapper .dataTables_info,
@@ -799,10 +863,9 @@ $base_url = 'http://localhost/web-linkup-loker/';
                 flex-wrap: wrap;
             }
 
-            .modern-table {
-                display: block;
+            /* Di mobile, tabel akan tetap bisa di-scroll horizontal */
+            .table-responsive {
                 overflow-x: auto;
-                white-space: nowrap;
             }
         }
     </style>
@@ -836,299 +899,310 @@ $base_url = 'http://localhost/web-linkup-loker/';
                 <div class="card">
                     <div class="card-body">
                         <?php if (count($lamaran_list) > 0): ?>
-                            <table class="modern-table" id="lamaranTable">
-                                <thead>
-                                    <tr>
-                                        <th>Informasi Pelamar</th>
-                                        <th>Lowongan</th>
-                                        <th>Tanggal Lamar</th>
-                                        <th>Status</th>
-                                        <th>Catatan HRD</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($lamaran_list as $lamaran):
-                                        $nama = htmlspecialchars($lamaran['nama_user'] ?? $lamaran['username_user'] ?? '-');
-                                        $initial = strtoupper(substr($nama, 0, 1));
-                                        $foto_url = '';
-                                        $has_foto = !empty($lamaran['foto_user']);
-                                        if ($has_foto) {
-                                            $foto_url = $base_url . 'adminpanel/src/images/user/' . $lamaran['foto_user'];
-                                        }
-                                        $has_catatan = !empty($lamaran['catatan_hrd']);
-                                        ?>
+                            <!-- ========== PERBAIKAN: Bungkus tabel dengan div.table-responsive ========== -->
+                            <div class="table-responsive">
+                                <table class="modern-table" id="lamaranTable">
+                                    <thead>
                                         <tr>
-                                            <td>
-                                                <div class="user-cell">
-                                                    <?php if ($has_foto): ?>
-                                                        <div class="user-avatar" style="background: none; padding: 0;">
-                                                            <img src="<?php echo $foto_url; ?>"
-                                                                style="width: 40px; height: 40px; object-fit: cover; border-radius: 12px;"
-                                                                onerror="this.onerror=null; this.parentElement.style.background='linear-gradient(135deg, #eef2ff, #e0e7ff)'; this.parentElement.innerHTML='<?php echo $initial; ?>'; this.style.display='none';">
-                                                        </div>
-                                                    <?php else: ?>
-                                                        <div class="user-avatar"><?php echo $initial; ?></div>
-                                                    <?php endif; ?>
-                                                    <div class="user-info">
-                                                        <div class="user-name"><?php echo $nama; ?></div>
-                                                        <div class="user-email">
-                                                            <?php echo htmlspecialchars($lamaran['email_user'] ?? '-'); ?>
+                                            <th>Informasi Pelamar</th>
+                                            <th>Lowongan</th>
+                                            <th>Tanggal Lamar</th>
+                                            <th>Status</th>
+                                            <th>Catatan HRD</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($lamaran_list as $lamaran):
+                                            $nama = htmlspecialchars($lamaran['nama_user'] ?? $lamaran['username_user'] ?? '-');
+                                            $initial = strtoupper(substr($nama, 0, 1));
+                                            $foto_url = '';
+                                            $has_foto = !empty($lamaran['foto_user']);
+                                            if ($has_foto) {
+                                                $foto_url = $base_url . 'adminpanel/src/images/user/' . $lamaran['foto_user'];
+                                            }
+                                            $has_catatan = !empty($lamaran['catatan_hrd']);
+                                            ?>
+                                            <tr>
+                                                <td>
+                                                    <div class="user-cell">
+                                                        <?php if ($has_foto): ?>
+                                                            <div class="user-avatar" style="background: none; padding: 0;">
+                                                                <img src="<?php echo $foto_url; ?>"
+                                                                    style="width: 40px; height: 40px; object-fit: cover; border-radius: 12px;"
+                                                                    onerror="this.onerror=null; this.parentElement.style.background='linear-gradient(135deg, #eef2ff, #e0e7ff)'; this.parentElement.innerHTML='<?php echo $initial; ?>'; this.style.display='none';">
+                                                            </div>
+                                                        <?php else: ?>
+                                                            <div class="user-avatar"><?php echo $initial; ?></div>
+                                                        <?php endif; ?>
+                                                        <div class="user-info">
+                                                            <div class="user-name"><?php echo $nama; ?></div>
+                                                            <div class="user-email">
+                                                                <?php echo htmlspecialchars($lamaran['email_user'] ?? '-'); ?>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                </td>
+                                                <td>
+                                                    <div class="job-title">
+                                                        <i class="fas fa-briefcase"></i>
+                                                        <?php echo htmlspecialchars($lamaran['judul_lowongan']); ?>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="date-cell">
+                                                        <i class="far fa-calendar-alt"></i>
+                                                        <?php echo date('d/m/Y H:i', strtotime($lamaran['tanggal_lamar'])); ?>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span
+                                                        class="badge 
+                                                        <?php echo $lamaran['status_lamaran'] == 'Diterima' ? 'badge-diterima' :
+                                                            ($lamaran['status_lamaran'] == 'Ditolak' ? 'badge-ditolak' : 'badge-diproses'); ?>">
+                                                        <?php echo $lamaran['status_lamaran']; ?>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="catatan-cell <?php echo $has_catatan ? 'has-catatan' : ''; ?>">
+                                                        <?php if ($has_catatan): ?>
+                                                            <i class="fas fa-sticky-note"></i>
+                                                            <?php echo htmlspecialchars(substr($lamaran['catatan_hrd'], 0, 50)) . (strlen($lamaran['catatan_hrd']) > 50 ? '...' : ''); ?>
+                                                        <?php else: ?>
+                                                            <i class="fas fa-sticky-note"></i>
+                                                            <span style="color: #94a3b8;">Tidak ada catatan</span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="action-buttons">
+                                                        <button class="btn-update updateLamaran"
+                                                            data-id="<?php echo $lamaran['id_lamaran']; ?>"
+                                                            data-status="<?php echo $lamaran['status_lamaran']; ?>"
+                                                            data-catatan="<?php echo htmlspecialchars($lamaran['catatan_hrd'] ?? ''); ?>"
+                                                            data-nama="<?php echo $nama; ?>"
+                                                            data-email="<?php echo htmlspecialchars($lamaran['email_user'] ?? '-'); ?>"
+                                                            data-lowongan="<?php echo htmlspecialchars($lamaran['judul_lowongan']); ?>">
+                                                            <i class="fas fa-pen"></i> Update
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
                             </div>
-                            <td>
-                                <div class="job-title">
-                                    <i class="fas fa-briefcase"></i>
-                                    <?php echo htmlspecialchars($lamaran['judul_lowongan']); ?>
+                            <!-- ========== END PERBAIKAN ========== -->
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-inbox"></i>
                                 </div>
-                        </div>
-                        <td>
-                            <div class="date-cell">
-                                <i class="far fa-calendar-alt"></i>
-                                <?php echo date('d/m/Y H:i', strtotime($lamaran['tanggal_lamar'])); ?>
+                                <h3>Belum Ada Lamaran</h3>
+                                <p>Belum ada kandidat yang melamar ke lowongan Anda</p>
                             </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
-                <td>
-                    <span
-                        class="badge 
-                                                    <?php echo $lamaran['status_lamaran'] == 'Diterima' ? 'badge-diterima' :
-                                                        ($lamaran['status_lamaran'] == 'Ditolak' ? 'badge-ditolak' : 'badge-diproses'); ?>">
-                        <?php echo $lamaran['status_lamaran']; ?>
-                    </span>
-            </div>
-            <td>
-                <div class="catatan-cell <?php echo $has_catatan ? 'has-catatan' : ''; ?>">
-                    <?php if ($has_catatan): ?>
-                        <i class="fas fa-sticky-note"></i>
-                        <?php echo htmlspecialchars(substr($lamaran['catatan_hrd'], 0, 50)) . (strlen($lamaran['catatan_hrd']) > 50 ? '...' : ''); ?>
-                    <?php else: ?>
-                        <i class="fas fa-sticky-note"></i>
-                        <span style="color: #94a3b8;">Tidak ada catatan</span>
-                    <?php endif; ?>
-                </div>
-                </div>
-            <td>
-                <div class="action-buttons">
-                    <button class="btn-update updateLamaran" data-id="<?php echo $lamaran['id_lamaran']; ?>"
-                        data-status="<?php echo $lamaran['status_lamaran']; ?>"
-                        data-catatan="<?php echo htmlspecialchars($lamaran['catatan_hrd'] ?? ''); ?>"
-                        data-nama="<?php echo $nama; ?>"
-                        data-email="<?php echo htmlspecialchars($lamaran['email_user'] ?? '-'); ?>"
-                        data-lowongan="<?php echo htmlspecialchars($lamaran['judul_lowongan']); ?>">
-                        <i class="fas fa-pen"></i> Update
-                    </button>
-                </div>
-                </div>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-            </table>
-        <?php else: ?>
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-inbox"></i>
-                </div>
-                <h3>Belum Ada Lamaran</h3>
-                <p>Belum ada kandidat yang melamar ke lowongan Anda</p>
-            </div>
-        <?php endif; ?>
+            </main>
         </div>
-        </div>
-        </main>
-        </div>
-        </div>
+    </div>
 
-        <!-- Modal Update Status & Catatan -->
-        <div id="catatanModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-pen"></i> Update Status Lamaran</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-info-card">
-                    <div class="modal-info-item">
-                        <div class="modal-info-icon"><i class="fas fa-user"></i></div>
-                        <div class="modal-info-content">
-                            <div class="modal-info-label">Nama Pelamar</div>
-                            <div class="modal-info-value" id="modalNamaPelamar">-</div>
-                        </div>
-                    </div>
-                    <div class="modal-info-item">
-                        <div class="modal-info-icon"><i class="fas fa-briefcase"></i></div>
-                        <div class="modal-info-content">
-                            <div class="modal-info-label">Lowongan</div>
-                            <div class="modal-info-value" id="modalJudulLowongan">-</div>
-                        </div>
-                    </div>
-                </div>
-                <form id="catatanForm">
-                    <input type="hidden" id="lamaranId">
-                    <div class="form-group" style="padding: 0 24px;">
-                        <label><i class="fas fa-tag"></i> Status Lamaran</label>
-                        <select id="updateStatus">
-                            <option value="Diproses">🟡 Diproses</option>
-                            <option value="Diterima">🟢 Diterima</option>
-                            <option value="Ditolak">🔴 Ditolak</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="padding: 0 24px;">
-                        <label><i class="fas fa-sticky-note"></i> Catatan HRD</label>
-                        <textarea id="updateCatatan" rows="4"
-                            placeholder="Masukkan catatan untuk pelamar..."></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn-secondary modal-cancel"><i class="fas fa-times"></i>
-                            Batal</button>
-                        <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Simpan Perubahan</button>
-                    </div>
-                </form>
+    <!-- Modal Update Status & Catatan -->
+    <div id="catatanModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-pen"></i> Update Status Lamaran</h3>
+                <button class="modal-close">&times;</button>
             </div>
-        </div>
-
-        <!-- Modal Export Filter Lamaran -->
-        <div id="exportModalLamaran" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-download"></i> Export Data Lamaran</h3>
-                    <button class="modal-close">&times;</button>
+            <div class="modal-info-card">
+                <div class="modal-info-item">
+                    <div class="modal-info-icon"><i class="fas fa-user"></i></div>
+                    <div class="modal-info-content">
+                        <div class="modal-info-label">Nama Pelamar</div>
+                        <div class="modal-info-value" id="modalNamaPelamar">-</div>
+                    </div>
                 </div>
-                <div class="form-two-columns">
-                    <div class="form-group">
-                        <label><i class="fas fa-tag"></i> Filter Status</label>
-                        <select id="filterStatusLamaran">
-                            <option value="">Semua Status</option>
-                            <option value="Diproses">Diproses</option>
-                            <option value="Diterima">Diterima</option>
-                            <option value="Ditolak">Ditolak</option>
-                        </select>
+                <div class="modal-info-item">
+                    <div class="modal-info-icon"><i class="fas fa-briefcase"></i></div>
+                    <div class="modal-info-content">
+                        <div class="modal-info-label">Lowongan</div>
+                        <div class="modal-info-value" id="modalJudulLowongan">-</div>
                     </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-briefcase"></i> Filter Lowongan</label>
-                        <select id="filterLowonganLamaran">
-                            <option value="">Semua Lowongan</option>
-                            <?php foreach ($lowongan_list as $low): ?>
-                                <option value="<?php echo $low['id_lowongan']; ?>">
-                                    <?php echo htmlspecialchars($low['judul_lowongan']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-calendar-alt"></i> Tanggal Mulai</label>
-                        <input type="date" id="filterTanggalMulai">
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-calendar-alt"></i> Tanggal Akhir</label>
-                        <input type="date" id="filterTanggalAkhir">
-                    </div>
+                </div>
+            </div>
+            <form id="catatanForm">
+                <input type="hidden" id="lamaranId">
+                <div class="form-group" style="padding: 0 24px;">
+                    <label><i class="fas fa-tag"></i> Status Lamaran</label>
+                    <select id="updateStatus">
+                        <option value="Diproses">🟡 Diproses</option>
+                        <option value="Diterima">🟢 Diterima</option>
+                        <option value="Ditolak">🔴 Ditolak</option>
+                    </select>
+                </div>
+                <div class="form-group" style="padding: 0 24px;">
+                    <label><i class="fas fa-sticky-note"></i> Catatan HRD</label>
+                    <textarea id="updateCatatan" rows="4" placeholder="Masukkan catatan untuk pelamar..."></textarea>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-secondary" id="btnResetFilterLamaran">
-                        <i class="fas fa-redo"></i> Reset
-                    </button>
-                    <button type="button" class="btn-secondary modal-cancel">Batal</button>
-                    <button type="button" class="btn-primary" id="btnExportCSVLamaran">
-                        <i class="fas fa-file-csv"></i> CSV
-                    </button>
-                    <button type="button" class="btn-primary" id="btnExportXLSLamaran">
-                        <i class="fas fa-file-excel"></i> Excel
-                    </button>
-                    <button type="button" class="btn-primary" id="btnExportPDFLamaran">
-                        <i class="fas fa-file-pdf"></i> PDF
-                    </button>
+                    <button type="button" class="btn-secondary modal-cancel"><i class="fas fa-times"></i>
+                        Batal</button>
+                    <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Export Filter Lamaran -->
+    <div id="exportModalLamaran" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-download"></i> Export Data Lamaran</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="form-two-columns">
+                <div class="form-group">
+                    <label><i class="fas fa-tag"></i> Filter Status</label>
+                    <select id="filterStatusLamaran">
+                        <option value="">Semua Status</option>
+                        <option value="Diproses">Diproses</option>
+                        <option value="Diterima">Diterima</option>
+                        <option value="Ditolak">Ditolak</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-briefcase"></i> Filter Lowongan</label>
+                    <select id="filterLowonganLamaran">
+                        <option value="">Semua Lowongan</option>
+                        <?php foreach ($lowongan_list as $low): ?>
+                            <option value="<?php echo $low['id_lowongan']; ?>">
+                                <?php echo htmlspecialchars($low['judul_lowongan']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-alt"></i> Tanggal Mulai</label>
+                    <input type="date" id="filterTanggalMulai">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-alt"></i> Tanggal Akhir</label>
+                    <input type="date" id="filterTanggalAkhir">
                 </div>
             </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="btnResetFilterLamaran">
+                    <i class="fas fa-redo"></i> Reset
+                </button>
+                <button type="button" class="btn-secondary modal-cancel">Batal</button>
+                <button type="button" class="btn-primary" id="btnExportCSVLamaran">
+                    <i class="fas fa-file-csv"></i> CSV
+                </button>
+                <button type="button" class="btn-primary" id="btnExportXLSLamaran">
+                    <i class="fas fa-file-excel"></i> Excel
+                </button>
+                <button type="button" class="btn-primary" id="btnExportPDFLamaran">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
+            </div>
         </div>
+    </div>
 
-        <div id="alertContainer" class="alert-container"></div>
+    <div id="alertContainer" class="alert-container"></div>
 
-        <script>
-            var BASE_URL = '<?php echo $base_url; ?>';
+    <script>
+        var BASE_URL = '<?php echo $base_url; ?>';
 
-            // DataTable initialization
-            $(document).ready(function () {
-                if ($('#lamaranTable tbody tr').length > 0) {
-                    var table = $('#lamaranTable').DataTable({
-                        language: {
-                            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json'
-                        },
-                        pageLength: 10,
-                        order: [[2, 'desc']],
-                        columnDefs: [{ orderable: false, targets: [5] }]
-                    });
+        $(document).ready(function () {
+            $('.modal').removeClass('show').hide();
+            $('body').css('overflow', '');
 
-                    $('#filterStatus').on('change', function () {
-                        var status = $(this).val();
-                        if (status === 'all') {
-                            table.column(3).search('').draw();
-                        } else {
-                            table.column(3).search(status).draw();
-                        }
-                    });
-                }
-            });
-
-            // Update Status Modal
-            function openUpdateModal() {
-                $('#catatanModal').addClass('show');
-                $('body').css('overflow', 'hidden');
-            }
-
-            function closeUpdateModal() {
-                $('#catatanModal').removeClass('show');
-                $('body').css('overflow', '');
-                $('#catatanForm')[0].reset();
-                $('#lamaranId').val('');
-            }
-
-            $(document).on('click', '.updateLamaran', function () {
-                $('#lamaranId').val($(this).data('id'));
-                $('#updateStatus').val($(this).data('status'));
-                $('#updateCatatan').val($(this).data('catatan') || '');
-                $('#modalNamaPelamar').html($(this).data('nama'));
-                $('#modalJudulLowongan').html($(this).data('lowongan'));
-                openUpdateModal();
-            });
-
-            $('#catatanForm').submit(function (e) {
-                e.preventDefault();
-                var submitBtn = $(this).find('button[type="submit"]');
-                var originalText = submitBtn.html();
-                submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...').prop('disabled', true);
-
-                $.ajax({
-                    url: 'ajax_lamaran.php',
-                    type: 'POST',
-                    data: {
-                        action: 'update_status',
-                        id: $('#lamaranId').val(),
-                        status: $('#updateStatus').val(),
-                        catatan: $('#updateCatatan').val()
+            if ($('#lamaranTable tbody tr').length > 0) {
+                var table = $('#lamaranTable').DataTable({
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json'
                     },
-                    dataType: 'json',
-                    success: function (res) {
-                        if (res.success) {
-                            showNotification('success', res.message, 'Berhasil');
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            showNotification('error', res.message, 'Gagal');
-                            submitBtn.html(originalText).prop('disabled', false);
-                        }
-                    },
-                    error: function () {
-                        showNotification('error', 'Terjadi kesalahan', 'Error');
-                        submitBtn.html(originalText).prop('disabled', false);
+                    pageLength: 10,
+                    order: [[2, 'desc']],
+                    columnDefs: [{ orderable: false, targets: [5] }]
+                });
+
+                $('#filterStatus').on('change', function () {
+                    var status = $(this).val();
+                    if (status === 'all') {
+                        table.column(3).search('').draw();
+                    } else {
+                        table.column(3).search(status).draw();
                     }
                 });
-            });
+            }
+        });
 
-            // Notification function
-            function showNotification(type, message, title) {
-                var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-                var textColor = type === 'success' ? '#15803d' : '#dc2626';
-                var alertHtml = `<div class="alert-item ${type}">
+        $(window).on('load', function () {
+            setTimeout(function () {
+                $('.modal').removeClass('show').hide();
+                $('body').css('overflow', '');
+            }, 100);
+        });
+
+        function openUpdateModal() {
+            $('#catatanModal').addClass('show');
+            $('body').css('overflow', 'hidden');
+        }
+
+        function closeUpdateModal() {
+            $('#catatanModal').removeClass('show');
+            $('body').css('overflow', '');
+            $('#catatanForm')[0].reset();
+            $('#lamaranId').val('');
+        }
+
+        $(document).on('click', '.updateLamaran', function () {
+            $('#lamaranId').val($(this).data('id'));
+            $('#updateStatus').val($(this).data('status'));
+            $('#updateCatatan').val($(this).data('catatan') || '');
+            $('#modalNamaPelamar').html($(this).data('nama'));
+            $('#modalJudulLowongan').html($(this).data('lowongan'));
+            openUpdateModal();
+        });
+
+        $('#catatanForm').submit(function (e) {
+            e.preventDefault();
+            var submitBtn = $(this).find('button[type="submit"]');
+            var originalText = submitBtn.html();
+            submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...').prop('disabled', true);
+
+            $.ajax({
+                url: 'ajax_lamaran.php',
+                type: 'POST',
+                data: {
+                    action: 'update_status',
+                    id: $('#lamaranId').val(),
+                    status: $('#updateStatus').val(),
+                    catatan: $('#updateCatatan').val()
+                },
+                dataType: 'json',
+                success: function (res) {
+                    if (res.success) {
+                        showNotification('success', res.message, 'Berhasil');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showNotification('error', res.message, 'Gagal');
+                        submitBtn.html(originalText).prop('disabled', false);
+                    }
+                },
+                error: function () {
+                    showNotification('error', 'Terjadi kesalahan', 'Error');
+                    submitBtn.html(originalText).prop('disabled', false);
+                }
+            });
+        });
+
+        function showNotification(type, message, title) {
+            var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            var textColor = type === 'success' ? '#15803d' : '#dc2626';
+            var alertHtml = `<div class="alert-item ${type}">
                 <i class="fas ${icon}" style="color: ${textColor};"></i>
                 <div class="alert-content">
                     <div class="alert-title" style="color: ${textColor};">${title}</div>
@@ -1136,113 +1210,103 @@ $base_url = 'http://localhost/web-linkup-loker/';
                 </div>
                 <button class="alert-close" onclick="$(this).closest('.alert-item').remove()">&times;</button>
             </div>`;
-                $('#alertContainer').append(alertHtml);
-                setTimeout(() => $('#alertContainer .alert-item:first-child').fadeOut(300, function () { $(this).remove(); }), 4000);
-            }
+            $('#alertContainer').append(alertHtml);
+            setTimeout(() => $('#alertContainer .alert-item:first-child').fadeOut(300, function () { $(this).remove(); }), 4000);
+        }
 
-            // Close modals
-            $('.modal-close, .modal-cancel').click(function () {
+        $('.modal-close, .modal-cancel').click(function () {
+            closeUpdateModal();
+            closeExportModalLamaran();
+        });
+
+        $(window).click(function (e) {
+            if ($(e.target).hasClass('modal')) {
                 closeUpdateModal();
                 closeExportModalLamaran();
-            });
-            $(window).click(function (e) {
-                if ($(e.target).hasClass('modal')) {
-                    closeUpdateModal();
-                    closeExportModalLamaran();
+            }
+        });
+
+        function openExportModalLamaran() {
+            $('#exportModalLamaran').addClass('show');
+            $('body').css('overflow', 'hidden');
+        }
+
+        function closeExportModalLamaran() {
+            $('#exportModalLamaran').removeClass('show');
+            $('body').css('overflow', '');
+        }
+
+        $('#btnExportLamaran').click(function () {
+            openExportModalLamaran();
+        });
+
+        $('#btnResetFilterLamaran').click(function () {
+            $('#filterStatusLamaran').val('');
+            $('#filterLowonganLamaran').val('');
+            $('#filterTanggalMulai').val('');
+            $('#filterTanggalAkhir').val('');
+        });
+
+        function exportLamaranData(format) {
+            var filters = {
+                status_lamaran: $('#filterStatusLamaran').val(),
+                id_lowongan: $('#filterLowonganLamaran').val(),
+                tanggal_mulai: $('#filterTanggalMulai').val(),
+                tanggal_akhir: $('#filterTanggalAkhir').val(),
+                format: format
+            };
+
+            var btnId = '';
+            if (format === 'csv') btnId = '#btnExportCSVLamaran';
+            else if (format === 'xls') btnId = '#btnExportXLSLamaran';
+            else if (format === 'pdf') btnId = '#btnExportPDFLamaran';
+
+            var originalText = $(btnId).html();
+            $(btnId).html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+
+            $.ajax({
+                url: 'ajax_export_lamaran.php',
+                type: 'POST',
+                data: filters,
+                dataType: 'json',
+                timeout: 30000,
+                success: function (res) {
+                    $(btnId).html(originalText).prop('disabled', false);
+                    if (res.success) {
+                        if (res.data_count > 0) {
+                            var downloadUrl = 'download.php?file=' + encodeURIComponent(res.download_url.replace('exports/', ''));
+                            window.location.href = downloadUrl;
+                            showNotification('success', `Berhasil export ${res.data_count} data lamaran`, 'Export Berhasil');
+                            closeExportModalLamaran();
+                        } else {
+                            showNotification('error', 'Tidak ada data lamaran yang sesuai dengan filter', 'Tidak Ada Data');
+                        }
+                    } else {
+                        showNotification('error', res.message || 'Gagal melakukan export', 'Export Gagal');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    $(btnId).html(originalText).prop('disabled', false);
+                    showNotification('error', 'Terjadi kesalahan: ' + error, 'Error');
                 }
             });
+        }
 
-            // ========== EXPORT FUNCTIONS ==========
-            function openExportModalLamaran() {
-                $('#exportModalLamaran').addClass('show');
-                $('body').css('overflow', 'hidden');
-            }
+        $(document).on('click', '#btnExportCSVLamaran', function (e) {
+            e.preventDefault();
+            exportLamaranData('csv');
+        });
 
-            function closeExportModalLamaran() {
-                $('#exportModalLamaran').removeClass('show');
-                $('body').css('overflow', '');
-            }
+        $(document).on('click', '#btnExportXLSLamaran', function (e) {
+            e.preventDefault();
+            exportLamaranData('xls');
+        });
 
-            $('#btnExportLamaran').click(function () {
-                openExportModalLamaran();
-            });
-
-            $('#btnResetFilterLamaran').click(function () {
-                $('#filterStatusLamaran').val('');
-                $('#filterLowonganLamaran').val('');
-                $('#filterTanggalMulai').val('');
-                $('#filterTanggalAkhir').val('');
-            });
-
-            function exportLamaranData(format) {
-                var filters = {
-                    status_lamaran: $('#filterStatusLamaran').val(),
-                    id_lowongan: $('#filterLowonganLamaran').val(),
-                    tanggal_mulai: $('#filterTanggalMulai').val(),
-                    tanggal_akhir: $('#filterTanggalAkhir').val(),
-                    format: format
-                };
-
-                console.log('Exporting to:', format, filters); // Debug
-
-                var btnId = '';
-                if (format === 'csv') btnId = '#btnExportCSVLamaran';
-                else if (format === 'xls') btnId = '#btnExportXLSLamaran';
-                else if (format === 'pdf') btnId = '#btnExportPDFLamaran';
-
-                var originalText = $(btnId).html();
-                $(btnId).html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
-
-                $.ajax({
-                    url: 'ajax_export_lamaran.php',
-                    type: 'POST',
-                    data: filters,
-                    dataType: 'json',
-                    timeout: 30000,
-                    success: function (res) {
-                        console.log('Response:', res); // Debug
-                        $(btnId).html(originalText).prop('disabled', false);
-
-                        if (res.success) {
-                            if (res.data_count > 0) {
-                                // Gunakan download handler seperti di lowongan.php
-                                var downloadUrl = 'download.php?file=' + encodeURIComponent(res.download_url.replace('exports/', ''));
-                                window.location.href = downloadUrl;
-                                showNotification('success', `Berhasil export ${res.data_count} data lamaran`, 'Export Berhasil');
-                                closeExportModalLamaran();
-                            } else {
-                                showNotification('error', 'Tidak ada data lamaran yang sesuai dengan filter', 'Tidak Ada Data');
-                            }
-                        } else {
-                            showNotification('error', res.message || 'Gagal melakukan export', 'Export Gagal');
-                        }
-                    },
-                    error: function (xhr, status, error) {
-                        console.log('AJAX Error:', status, error);
-                        console.log('Response Text:', xhr.responseText);
-                        $(btnId).html(originalText).prop('disabled', false);
-                        showNotification('error', 'Terjadi kesalahan: ' + error, 'Error');
-                    }
-                });
-            }
-
-            // Export button handlers dengan event binding yang lebih aman
-            $(document).on('click', '#btnExportCSVLamaran', function (e) {
-                e.preventDefault();
-                exportLamaranData('csv');
-            });
-
-            $(document).on('click', '#btnExportXLSLamaran', function (e) {
-                e.preventDefault();
-                exportLamaranData('xls');
-            });
-
-            $(document).on('click', '#btnExportPDFLamaran', function (e) {
-                e.preventDefault();
-                exportLamaranData('pdf');
-            });
-
-        </script>
+        $(document).on('click', '#btnExportPDFLamaran', function (e) {
+            e.preventDefault();
+            exportLamaranData('pdf');
+        });
+    </script>
 
 </body>
 

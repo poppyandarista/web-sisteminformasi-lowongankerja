@@ -302,6 +302,43 @@ if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) 
       border-radius: 3px;
     }
 
+    /* Foto preview di modal edit */
+    .foto-preview-container {
+      width: 100px;
+      height: 100px;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #f9fafb;
+      border: 1px solid #e5e7eb;
+    }
+
+    .dark .foto-preview-container {
+      background-color: #374151;
+      border-color: #4b5563;
+    }
+
+    .foto-preview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-preview {
+      width: 100px;
+      height: 100px;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 1px solid #e5e7eb;
+    }
+
+    .current-photo-container {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
     /* ========== IMPROVED MODAL DETAIL ========== */
     #modalDetailPelamar .modal-content {
       width: 700px !important;
@@ -2285,10 +2322,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) 
                             <div class="flex gap-2">
                               <!-- Tombol Edit -->
                               <button onclick="editPelamar(<?php echo $row['id_user']; ?>)"
-                                style="background-color: #2563eb;"
-                                class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white transition rounded-lg hover:opacity-80">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20"
-                                  fill="currentColor">
+                                class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                                style="background-color: #2563eb; border: none;"
+                                onmouseover="this.style.backgroundColor='#1d4ed8'"
+                                onmouseout="this.style.backgroundColor='#2563eb'">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none"
+                                  stroke="currentColor" stroke-width="2">
                                   <path
                                     d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                 </svg>
@@ -2298,13 +2337,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) 
                               <!-- Tombol Hapus -->
                               <button
                                 onclick="showDeleteConfirmation(<?php echo $row['id_user']; ?>, '<?php echo addslashes($row['nama_user'] ?: $row['email_user']); ?>')"
-                                style="background-color: #dc2626;"
-                                class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white transition rounded-lg hover:opacity-80">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20"
-                                  fill="currentColor">
-                                  <path fill-rule="evenodd"
-                                    d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                                    clip-rule="evenodd" />
+                                class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                                style="background-color: #dc2626; border: none;"
+                                onmouseover="this.style.backgroundColor='#b91c1c'"
+                                onmouseout="this.style.backgroundColor='#dc2626'">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none"
+                                  stroke="currentColor" stroke-width="2">
+                                  <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                                 Hapus
                               </button>
@@ -2416,11 +2456,22 @@ if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) 
 
         <div class="flex justify-center gap-2">
           <button type="button" onclick="toggleModal('modalHapusPelamar')"
-            class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors">
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all duration-200 border border-gray-300">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
             Batal
           </button>
-          <button type="button" id="confirmDeleteBtnPelamar" style="background-color: #dc2626;"
-            class="inline-flex items-center gap-2 px-4 py-3 text-sm font-medium text-white transition rounded-lg hover:bg-red-700">
+          <button type="button" id="confirmDeleteBtnPelamar"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+            style="background-color: #dc2626; border: none;" onmouseover="this.style.backgroundColor='#b91c1c'"
+            onmouseout="this.style.backgroundColor='#dc2626'">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
             Ya, Hapus
           </button>
         </div>
@@ -2712,6 +2763,18 @@ if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) 
                 </div>
                 <input type="file" name="foto_user" id="fotoInput" class="hidden" accept="image/*" onchange="handleFotoUpload(event)">
                 
+                <!-- Preview foto baru -->
+                <div id="fotoPreviewContainer" class="hidden mt-2">
+                    <div class="flex items-center gap-2">
+                        <div class="foto-preview-container">
+                            <img id="fotoPreviewImg" src="" alt="Preview" class="foto-preview">
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-600">Preview foto baru</p>
+                            <button type="button" onclick="clearFotoPreview()" class="text-xs text-red-500 hover:text-red-700">Hapus</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Data Dasar -->
@@ -2842,11 +2905,20 @@ if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) 
             <!-- Footer Buttons -->
             <div class="flex justify-end gap-2 pt-4 border-t border-stroke dark:border-strokedark">
                 <button type="button" onclick="toggleModal('modalEditPelamar')"
-                    class="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 dark:bg-meta-4 dark:text-gray-300 transition">
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all duration-200 border border-gray-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
                     Batal
                 </button>
                 <button type="submit" id="submitEditBtn"
-                    class="px-4 py-2 text-sm font-medium text-white bg-brand-500 rounded hover:bg-brand-600 transition inline-flex items-center">
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                    style="background-color: #2563eb; border: none;"
+                    onmouseover="this.style.backgroundColor='#1d4ed8'"
+                    onmouseout="this.style.backgroundColor='#2563eb'">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 13l4 4L19 7"/>
+                    </svg>
                     <span>Update Data</span>
                 </button>
             </div>
@@ -3014,6 +3086,51 @@ if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) 
           }
         })
         .catch(error => console.error('Error loading kota:', error));
+    }
+
+    // ========== FUNGSI PREVIEW FOTO ==========
+    function handleFotoUpload(event) {
+      const file = event.target.files[0];
+      const previewContainer = document.getElementById('fotoPreviewContainer');
+      const previewImg = document.getElementById('fotoPreviewImg');
+
+      if (file) {
+        // Validasi file
+        if (file.size > 2 * 1024 * 1024) {
+          alert('Ukuran file terlalu besar (maks 2MB)');
+          event.target.value = '';
+          return;
+        }
+
+        if (!file.type.match('image.*')) {
+          alert('Format file tidak didukung (hanya JPG, PNG)');
+          event.target.value = '';
+          return;
+        }
+
+        // Tampilkan preview
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          previewImg.src = e.target.result;
+          previewContainer.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Sembunyikan preview jika tidak ada file
+        previewContainer.classList.add('hidden');
+        previewImg.src = '';
+      }
+    }
+
+    function clearFotoPreview() {
+      const previewContainer = document.getElementById('fotoPreviewContainer');
+      const previewImg = document.getElementById('fotoPreviewImg');
+      const fileInput = document.getElementById('fotoInput');
+
+      // Reset preview
+      previewContainer.classList.add('hidden');
+      previewImg.src = '';
+      fileInput.value = '';
     }
 
     // ========== FUNGSI UPDATE PELAMAR ==========
@@ -3343,10 +3460,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) 
                     
                     ${!pelamar.deskripsi_user && !pelamar.kelebihan_user && !pelamar.riwayatpekerjaan_user && !pelamar.prestasi_user ?
           `<div class="no-data-message">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
                             <p class="font-medium">Belum ada data profil</p>
                             <p class="text-sm">Pelamar belum mengisi data profil</p>
                         </div>` : ''}
@@ -3472,10 +3585,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) 
                     </div>
                     ` : ''}
                 ` : `<div class="no-data-message">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                        </svg>
                         <p class="font-medium">Belum ada portfolio</p>
                         <p class="text-sm">Pelamar belum menambahkan portfolio</p>
                     </div>`}

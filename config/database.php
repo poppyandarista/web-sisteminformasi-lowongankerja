@@ -496,5 +496,106 @@ class database
         $stmt->close();
         return $data;
     }
+
+    // Tambahkan method ini di class database
+// Method untuk filter lowongan dengan multiple criteria
+public function filter_lowongan($keyword = '', $lokasi = '', $kategori = '')
+{
+    $query = "SELECT l.*, p.nama_perusahaan, p.logo_perusahaan, k.nama_kategori, 
+              j.nama_jenis, kt.nama_kota, pr.nama_provinsi
+              FROM lowongan l
+              JOIN perusahaan p ON l.id_perusahaan = p.id_perusahaan
+              JOIN kategori k ON l.kategori_lowongan = k.id_kategori
+              JOIN jenis j ON l.id_jenis = j.id_jenis
+              LEFT JOIN kota kt ON l.id_kota = kt.id_kota
+              LEFT JOIN provinsi pr ON l.id_provinsi = pr.id_provinsi
+              WHERE l.status = 'Aktif'";
+
+    $params = [];
+    $types = "";
+
+    // Filter berdasarkan keyword (posisi atau nama perusahaan)
+    if (!empty($keyword)) {
+        $query .= " AND (l.judul_lowongan LIKE ? OR p.nama_perusahaan LIKE ?)";
+        $params[] = "%$keyword%";
+        $params[] = "%$keyword%";
+        $types .= "ss";
+    }
+
+    // Filter berdasarkan lokasi
+    if (!empty($lokasi) && $lokasi != 'all') {
+        $query .= " AND (kt.nama_kota LIKE ? OR pr.nama_provinsi LIKE ? OR l.lokasi_lowongan LIKE ?)";
+        $params[] = "%$lokasi%";
+        $params[] = "%$lokasi%";
+        $params[] = "%$lokasi%";
+        $types .= "sss";
+    }
+
+    // Filter berdasarkan kategori
+    if (!empty($kategori) && $kategori != 'all') {
+        $query .= " AND l.kategori_lowongan = ?";
+        $params[] = $kategori;
+        $types .= "i";
+    }
+
+    $query .= " ORDER BY l.tanggal_posting DESC";
+
+    return $this->executeQuery($query, $params, $types);
+}
+
+// Method untuk mendapatkan semua lokasi (kota/provinsi) yang memiliki lowongan
+public function get_lokasi_filter() {
+    $query = "SELECT DISTINCT 
+              COALESCE(kt.id_kota, pr.id_provinsi) as id,
+              COALESCE(kt.nama_kota, pr.nama_provinsi) as nama_lokasi,
+              CASE WHEN kt.id_kota IS NOT NULL THEN 'kota' ELSE 'provinsi' END as tipe_lokasi
+              FROM lowongan l
+              LEFT JOIN kota kt ON l.id_kota = kt.id_kota
+              LEFT JOIN provinsi pr ON l.id_provinsi = pr.id_provinsi
+              WHERE l.status = 'Aktif'
+              AND (kt.nama_kota IS NOT NULL OR pr.nama_provinsi IS NOT NULL)
+              ORDER BY nama_lokasi";
+    
+    return $this->executeQuery($query);
+}
+
+// Method untuk mendapatkan semua perusahaan yang memiliki lowongan aktif
+public function get_perusahaan_filter() {
+    $query = "SELECT DISTINCT p.id_perusahaan, p.nama_perusahaan, p.logo_perusahaan,
+              COUNT(l.id_lowongan) as jumlah_lowongan
+              FROM perusahaan p
+              JOIN lowongan l ON p.id_perusahaan = l.id_perusahaan
+              WHERE l.status = 'Aktif'
+              GROUP BY p.id_perusahaan
+              ORDER BY p.nama_perusahaan";
+    
+    return $this->executeQuery($query);
+}
+
+// Helper method untuk execute query dengan parameter binding
+public function executeQuery($query, $params = [], $types = "")
+{
+    $stmt = $this->koneksi->prepare($query);
+    
+    if ($stmt === false) {
+        die("Error preparing query: " . $this->koneksi->error);
+    }
+
+    if (!empty($params)) {
+        $stmt->bind_param($types, ...$params);
+    }
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+
+    $stmt->close();
+    return $data;
+}
+
 }
 ?>
